@@ -1,0 +1,51 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(ls -1 /Users/patrickdeblock/Documents/cowork/company-builder/components/*.md)",
+      "Bash(wc -l /Users/patrickdeblock/Documents/cowork/company-builder/technical-design/*.md)",
+      "Bash(find /Users/patrickdeblock/Documents/cowork/company-builder/codebase/packages/agents -name *.ts)",
+      "Bash(sort find:*)",
+      "Bash(wc -l /Users/patrickdeblock/Documents/cowork/company-builder/codebase/packages/agents/src/phase-0/*.ts /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/api/agents/*/route.ts /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/api/cron/phase-0-scan/route.ts)",
+      "Bash(mkdir -p /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/\\\\\\(discovery\\\\\\)/watchlist/[opportunityId])",
+      "Bash(mkdir -p /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/api/pipeline/items/[itemId]/gate)",
+      "Bash(mkdir -p /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/api/watchlist/[opportunityId])",
+      "Bash(ls /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/\\\\\\(dashboard\\\\\\)/dashboard/)",
+      "Bash(npx tsc:*)",
+      "Bash(node_modules/.bin/tsc --noEmit)",
+      "Bash(head -3 /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/\\\\\\(dashboard\\\\\\)/dashboard/components/BlockedItemsAlert.tsx)",
+      "Bash(head -3 /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/\\\\\\(discovery\\\\\\)/watchlist/components/RankingBreakdown.tsx)",
+      "Bash(head -3 /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/\\\\\\(discovery\\\\\\)/watchlist/components/OpportunityDetail.tsx)",
+      "Bash(ls /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/api/pipeline/items/[itemId]/)",
+      "Bash(grep -r \"from ''@/components/layout/AppShell''\" /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app)",
+      "Bash(ls /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/\\\\\\(blueprint\\\\\\)/blueprint/)",
+      "Bash(ls /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/\\\\\\(blueprint\\\\\\)/blueprint/[blueprintId]/)",
+      "Bash(ls /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/\\\\\\(blueprint\\\\\\)/blueprint/[blueprintId]/components/)",
+      "Bash(ls /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/\\\\\\(blueprint\\\\\\)/blueprint/components/)",
+      "Bash(grep -n \"from ''../../components/\" /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/\\\\\\(blueprint\\\\\\)/blueprint/[blueprintId]/sections/executive-summary/page.tsx)",
+      "Bash(grep -rn \"from ''../../components/\" /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/\\\\\\(blueprint\\\\\\)/blueprint/[blueprintId]/sections/)",
+      "Bash(grep -n \"from ''../components/BlueprintNav''\" \"/Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/\\(blueprint\\)/blueprint/[blueprintId]/layout.tsx\")",
+      "Bash(find /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/api/concepts /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/api/validation /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/api/blueprints /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/api/settings /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/api/pipeline/items/[id] -name *.ts)",
+      "Bash(find /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/components -type f -name *.tsx)",
+      "Bash(npm install:*)",
+      "Bash(node -e \"const pkg = require\\(''./node_modules/@supabase/supabase-js/package.json''\\); console.log\\(pkg.version\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''''exports'''', {}\\), indent=2\\)\\)\")",
+      "Bash(python3 -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\({k:v for k,v in d.items\\(\\) if k in [''''main'''',''''module'''',''''types'''',''''exports'''',''''typesVersions'''']}, indent=2\\)\\)\")",
+      "Bash(npm info:*)",
+      "Bash(python3 -c \"import sys,json; v=json.load\\(sys.stdin\\); print\\(''''\\\\n''''.join\\(v[-10:]\\)\\)\")",
+      "Bash(grep -rln \"response.content\\\\[0\\\\].type === ''text'' ? response.content\\\\[0\\\\].text\" /Users/patrickdeblock/Documents/cowork/company-builder/codebase/packages/agents/src/)",
+      "Bash(find . -name \"*.ts\" -exec grep -l \"_b\\\\?\\\\.type === ''''text''''\" {})",
+      "Read(//dev/**)",
+      "Bash(ls /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/\\\\\\(blueprint\\\\\\)/blueprint/[blueprintId]/sections/)",
+      "Bash(head -30 /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/\\\\\\(validation\\\\\\)/validation/components/SynthesisVerdict.tsx)",
+      "Bash(head -25 /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/\\\\\\(validation\\\\\\)/validation/components/FeasibilityRiskMatrix.tsx)",
+      "Bash(grep -n \"^\\\\s*[a-z_]*: {$\" /Users/patrickdeblock/Documents/cowork/company-builder/codebase/packages/database/src/types.ts)",
+      "Bash(npx next:*)",
+      "Bash(cat /Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/api/pipeline/items/[id]/gate/route.ts)"
+    ],
+    "additionalDirectories": [
+      "/Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/(ideation)/concepts/[conceptId]",
+      "/Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/(blueprint)/blueprint/[blueprintId]/sections/gtm-plan",
+      "/Users/patrickdeblock/Documents/cowork/company-builder/codebase/apps/web/app/api/pipeline/items/[id]"
+    ]
+  }
+}

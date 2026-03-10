@@ -1,0 +1,16 @@
+{
+  "name": "company-builder",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "dev": "npm run dev --workspace=apps/web",
+    "build": "npm run build --workspace=apps/web",
+    "typecheck": "tsc --build"
+  },
+  "dependencies": {
+    "@supabase/ssr": "^0.9.0"
+  }
+}

@@ -1,0 +1,13 @@
+{
+  "name": "@company-builder/core",
+  "version": "0.0.1",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.30.0",
+    "@supabase/supabase-js": "^2.45.0",
+    "@company-builder/types": "*",
+    "@company-builder/database": "*",
+    "zod": "^3.23.0"
+  }
+}
