@@ -2,7 +2,7 @@
   "crons": [
     {
       "path": "/api/cron/orchestrator-tick",
-      "schedule": "0 * * * *"
+      "schedule": "0 0 * * *"
     },
     {
       "path": "/api/cron/feedback-loop",
@@ -10,7 +10,7 @@
     },
     {
       "path": "/api/cron/phase-0-scan",
-      "schedule": "0 * * * *"
+      "schedule": "0 0 * * *"
     }
   ],
   "functions": {
