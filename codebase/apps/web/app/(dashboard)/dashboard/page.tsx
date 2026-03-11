@@ -12,6 +12,7 @@ import { PipelineFunnelChart } from './components/PipelineFunnelChart';
 import { RecentActivity } from './components/RecentActivity';
 import { ActiveItemsList } from './components/ActiveItemsList';
 import { BlockedItemsAlert } from './components/BlockedItemsAlert';
+import { DashboardRealtimeRefresh } from './components/DashboardRealtimeRefresh';
 import type { PhaseStats } from './components/PhaseCard';
 import type { PipelineItem, PipelineEvent } from '@company-builder/types';
 import { formatCurrency } from '@/lib/utils/formatters';
@@ -130,6 +131,9 @@ export default async function DashboardPage() {
 
   return (
     <div className="p-6 space-y-6 max-w-screen-2xl mx-auto">
+      {/* Realtime subscription — refreshes server data on pipeline/agent changes */}
+      <DashboardRealtimeRefresh />
+
       {/* Page Header */}
       <div>
         <h1 className="text-2xl font-bold text-slate-900">Pipeline Dashboard</h1>

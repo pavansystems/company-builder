@@ -12,10 +12,13 @@ export async function PATCH(req: NextRequest, { params }: RouteParams) {
 
   const updates: Record<string, unknown> = { updated_at: new Date().toISOString() };
   if (body.is_active !== undefined) updates.is_active = body.is_active;
-  if (body.scan_frequency_hours !== undefined) {
+  if (body.config !== undefined) {
+    updates.config = body.config;
+  } else if (body.scan_frequency_hours !== undefined) {
     updates.config = { scan_frequency_hours: body.scan_frequency_hours };
   }
   if (body.name !== undefined) updates.name = body.name;
+  if (body.source_type !== undefined) updates.source_type = body.source_type;
   if (body.url !== undefined) updates.url = body.url;
 
   const { data, error } = await supabase

@@ -5,6 +5,13 @@ import type { UserAnnotationInsert } from '@company-builder/types';
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
+
+    // Get authenticated user for account isolation
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
 
     const { entityType, entityId, annotationType, notes } = body as {
@@ -26,8 +33,9 @@ export async function POST(request: NextRequest) {
       annotated_object_id: entityId,
       annotation_type: annotationType as UserAnnotationInsert['annotation_type'],
       content: notes ?? null,
-      created_by: 'user',
+      created_by: user.id,
       created_at: new Date().toISOString(),
+      account_id: user.id,
     };
 
     const { data, error } = await supabase

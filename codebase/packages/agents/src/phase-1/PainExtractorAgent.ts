@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type { AgentInput, MarketOpportunity } from '@company-builder/types';
+import { PainExtractorInputSchema, PainExtractorOutputSchema } from '../schemas';
 
 interface PainExtractorContext {
   opportunityId: string;
@@ -24,6 +26,14 @@ interface PainExtractorOutput {
 }
 
 export class PainExtractorAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return PainExtractorInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return PainExtractorOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'validations';
   }
@@ -31,7 +41,7 @@ export class PainExtractorAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const context = input.context as unknown as PainExtractorContext;
+    const context = PainExtractorInputSchema.parse(input.context);
     const { opportunity, landscapeAnalysis } = context;
 
     const systemPrompt = `You are the Pain Extractor agent for the Company Builder platform — the customer intelligence engine of Phase 1 Ideation.
@@ -131,7 +141,7 @@ Produce a comprehensive pain point catalog with 5–8 distinct, evidence-backed 
   }
 
   protected async persistOutput(output: unknown, input: AgentInput): Promise<void> {
-    const context = input.context as unknown as PainExtractorContext;
+    const context = PainExtractorInputSchema.parse(input.context);
     const { opportunityId } = context;
 
     const { error } = await this.supabase.from('validations').insert({

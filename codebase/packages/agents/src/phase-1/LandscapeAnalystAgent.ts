@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type { AgentInput, MarketOpportunity } from '@company-builder/types';
+import { LandscapeAnalystInputSchema, LandscapeAnalystOutputSchema } from '../schemas';
 
 interface LandscapeAnalystContext {
   opportunityId: string;
@@ -28,6 +30,14 @@ interface LandscapeAnalystOutput {
 }
 
 export class LandscapeAnalystAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return LandscapeAnalystInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return LandscapeAnalystOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'validations';
   }
@@ -35,7 +45,7 @@ export class LandscapeAnalystAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const context = input.context as unknown as LandscapeAnalystContext;
+    const context = LandscapeAnalystInputSchema.parse(input.context);
     const { opportunity } = context;
 
     const systemPrompt = `You are the Landscape Analyst agent for the Company Builder platform — the foundational intelligence engine of Phase 1 Ideation.
@@ -130,7 +140,7 @@ Deliver a comprehensive landscape analysis covering: 3–6 incumbents with their
   }
 
   protected async persistOutput(output: unknown, input: AgentInput): Promise<void> {
-    const context = input.context as unknown as LandscapeAnalystContext;
+    const context = LandscapeAnalystInputSchema.parse(input.context);
     const { opportunityId } = context;
 
     const { error } = await this.supabase.from('validations').insert({

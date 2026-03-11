@@ -39,6 +39,7 @@ export interface UserAnnotation {
   created_at: string;
   resolved: boolean;
   resolved_at: string | null;
+  account_id: string;
 }
 
 export interface UserAnnotationInsert {
@@ -54,6 +55,7 @@ export interface UserAnnotationInsert {
   created_at?: string;
   resolved?: boolean;
   resolved_at?: string | null;
+  account_id?: string;
 }
 
 export interface FeedbackEvent {
@@ -74,6 +76,7 @@ export interface FeedbackEvent {
   // Metadata
   occurred_at: string;
   recorded_at: string;
+  account_id: string;
 }
 
 export interface FeedbackEventInsert {
@@ -86,4 +89,5 @@ export interface FeedbackEventInsert {
   learning_detail?: string | null;
   occurred_at?: string;
   recorded_at?: string;
+  account_id?: string;
 }

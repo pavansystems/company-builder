@@ -1,10 +1,12 @@
 'use client';
 
 import { useState, useMemo } from 'react';
+import { useRouter } from 'next/navigation';
 import { SlidersHorizontal, GitCompare } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { FilterBar } from '@/components/shared/FilterBar';
 import { EmptyState } from '@/components/shared/EmptyState';
+import { useRealtimeSubscription } from '@/lib/hooks/useRealtimeSubscription';
 import { ConceptCard, type ConceptWithScore } from './ConceptCard';
 import { ConceptComparison } from './ConceptComparison';
 
@@ -22,11 +24,22 @@ const SORT_OPTIONS = [
 ];
 
 export function ConceptGrid({ initialConcepts }: ConceptGridProps) {
+  const router = useRouter();
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
   const [sortKey, setSortKey] = useState<SortKey>('score');
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [showComparison, setShowComparison] = useState(false);
+
+  // Subscribe to pipeline_items changes in ideation phase (phase_1) to
+  // auto-refresh the concepts list when items advance or update
+  useRealtimeSubscription('pipeline_items', {
+    event: '*',
+    filter: 'current_phase=eq.phase_1',
+    onInsert: () => router.refresh(),
+    onUpdate: () => router.refresh(),
+    onDelete: () => router.refresh(),
+  });
 
   // Derive unique opportunities for the filter
   const opportunityOptions = useMemo(() => {

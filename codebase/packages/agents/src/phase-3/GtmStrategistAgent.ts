@@ -1,7 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type { AgentInput } from '@company-builder/types';
 import type { Concept } from '@company-builder/types';
+import { GtmStrategistInputSchema, GtmStrategistOutputSchema } from '../schemas';
 
 // ---------------------------------------------------------------------------
 // Input context shape
@@ -59,6 +61,14 @@ interface GtmStrategistLLMResponse {
 // ---------------------------------------------------------------------------
 
 export class GtmStrategistAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return GtmStrategistInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return GtmStrategistOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'blueprints';
   }
@@ -66,7 +76,7 @@ export class GtmStrategistAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const ctx = input.context as unknown as GtmStrategistContext;
+    const ctx = GtmStrategistInputSchema.parse(input.context);
     const { concept, customerValidation, unitEconomics } = ctx;
 
     const systemPrompt = `You are the GTM Strategist (Phase 3, Step 3.3) for the Company Builder platform.
@@ -247,7 +257,7 @@ Design a go-to-market strategy that can realistically acquire 100+ customers in 
     output: unknown,
     input: AgentInput,
   ): Promise<void> {
-    const ctx = input.context as unknown as GtmStrategistContext;
+    const ctx = GtmStrategistInputSchema.parse(input.context);
     const { conceptId } = ctx;
     const data = output as GtmStrategistLLMResponse;
 

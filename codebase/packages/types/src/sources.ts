@@ -12,6 +12,7 @@ export interface Source {
   updated_at: string;
   last_scanned_at: string | null;
   created_by: string | null;
+  account_id: string;
 }
 
 export interface ContentItem {
@@ -27,6 +28,7 @@ export interface ContentItem {
   metadata: Record<string, unknown> | null;
   is_duplicate: boolean;
   is_archived: boolean;
+  account_id: string;
 }
 
 export interface ContentItemInsert {
@@ -42,6 +44,7 @@ export interface ContentItemInsert {
   metadata?: Record<string, unknown> | null;
   is_duplicate?: boolean;
   is_archived?: boolean;
+  account_id?: string;
 }
 
 export interface SourceInsert {
@@ -56,4 +59,5 @@ export interface SourceInsert {
   updated_at?: string;
   last_scanned_at?: string | null;
   created_by?: string | null;
+  account_id?: string;
 }

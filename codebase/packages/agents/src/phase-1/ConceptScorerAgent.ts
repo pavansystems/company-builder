@@ -1,7 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type { AgentInput, Concept, MarketOpportunity } from '@company-builder/types';
 import { AgentPersistenceError } from '@company-builder/core';
+import { ConceptScorerInputSchema, ConceptScorerOutputSchema } from '../schemas';
 
 interface ConceptScorerContext {
   concepts: Concept[];
@@ -41,6 +43,14 @@ const WEIGHTS = {
 };
 
 export class ConceptScorerAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return ConceptScorerInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return ConceptScorerOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'concept_scores';
   }
@@ -48,7 +58,7 @@ export class ConceptScorerAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const context = input.context as unknown as ConceptScorerContext;
+    const context = ConceptScorerInputSchema.parse(input.context);
     const { concepts, opportunity } = context;
 
     const systemPrompt = `You are the Concept Scorer agent for the Company Builder platform — the analytical evaluation engine of Phase 1 Ideation.

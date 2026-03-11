@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import {
@@ -10,6 +10,8 @@ import {
   FlaskConical,
   FileText,
   Settings,
+  ShieldCheck,
+  Monitor,
   ChevronLeft,
   ChevronRight,
   LogOut,
@@ -24,6 +26,7 @@ interface NavItem {
   href: string;
   label: string;
   icon: LucideIcon;
+  badgeKey?: string;
 }
 
 interface NavSection {
@@ -73,6 +76,15 @@ const navSections: NavSection[] = [
     ],
   },
   {
+    title: 'Operations',
+    phaseColor: '#EA580C',
+    phaseBorderClass: 'border-orange-500',
+    items: [
+      { href: '/review', label: 'Review Queue', icon: ShieldCheck, badgeKey: 'review' },
+      { href: '/monitoring', label: 'Monitoring', icon: Monitor },
+    ],
+  },
+  {
     title: 'System',
     items: [
       { href: '/settings', label: 'Settings', icon: Settings },
@@ -85,9 +97,25 @@ export function Sidebar() {
   const { user, signOut } = useAuth();
   const router = useRouter();
   const [collapsed, setCollapsed] = useState(false);
+  const [reviewCount, setReviewCount] = useState(0);
+
+  useEffect(() => {
+    fetch('/api/pipeline/review')
+      .then((res) => res.json())
+      .then((data) => {
+        if (typeof data.count === 'number') {
+          setReviewCount(data.count);
+        }
+      })
+      .catch(() => {
+        // Silently ignore errors fetching review count
+      });
+  }, [pathname]);
 
   async function handleSignOut() {
     await signOut();
+    // Also call the server-side logout route to clear cookies
+    await fetch('/auth/logout', { method: 'POST' });
     router.push('/auth/login');
   }
 
@@ -166,21 +194,28 @@ export function Sidebar() {
                         }
                       />
                       {!collapsed && (
-                        <span
-                          className={cn(
-                            'truncate',
-                            isActive && section.phaseColor
-                              ? ''
-                              : ''
+                        <>
+                          <span
+                            className={cn(
+                              'truncate',
+                              isActive && section.phaseColor
+                                ? ''
+                                : ''
+                            )}
+                            style={
+                              isActive && section.phaseColor
+                                ? { color: section.phaseColor }
+                                : undefined
+                            }
+                          >
+                            {item.label}
+                          </span>
+                          {item.badgeKey === 'review' && reviewCount > 0 && (
+                            <span className="ml-auto inline-flex items-center justify-center min-w-[20px] h-5 px-1.5 rounded-full text-xs font-semibold bg-orange-500 text-white">
+                              {reviewCount}
+                            </span>
                           )}
-                          style={
-                            isActive && section.phaseColor
-                              ? { color: section.phaseColor }
-                              : undefined
-                          }
-                        >
-                          {item.label}
-                        </span>
+                        </>
                       )}
                     </Link>
                   </li>

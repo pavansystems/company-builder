@@ -13,8 +13,15 @@ export async function GET() {
 }
 
 export async function POST(req: NextRequest) {
-  const body = await req.json();
   const supabase = await createServerSupabaseClient();
+
+  // Get authenticated user for account isolation
+  const { data: { user } } = await supabase.auth.getUser();
+  if (!user) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+  }
+
+  const body = await req.json();
 
   const { data, error } = await supabase
     .from('sources')
@@ -24,6 +31,7 @@ export async function POST(req: NextRequest) {
       url: body.url ?? null,
       config: body.config ?? null,
       is_active: body.is_active ?? true,
+      account_id: user.id,
     })
     .select()
     .single();

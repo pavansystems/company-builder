@@ -2,6 +2,10 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { SignalDetectorAgent } from '@company-builder/agents';
 import type { AgentInput } from '@company-builder/types';
+import { logger } from '@company-builder/core';
+import { handleAgentError } from '../_shared/errorHandler';
+
+const log = logger.child({ service: 'api', route: 'signal-detector' });
 
 export const maxDuration = 300;
 
@@ -42,11 +46,22 @@ export async function POST(request: NextRequest) {
     anthropicApiKey: process.env.ANTHROPIC_API_KEY!,
   });
 
+  log.info('Request received', { pipelineItemId: input.pipeline_item_id });
+
   try {
     const output = await agent.run(input);
+    log.info('Agent completed', {
+      pipelineItemId: input.pipeline_item_id,
+      tokensUsed: output.tokens_used,
+      costUsd: output.cost_usd,
+      durationMs: output.duration_ms,
+    });
     return NextResponse.json(output);
   } catch (error) {
-    console.error('[signal-detector] Error:', error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    log.error('Agent failed', {
+      pipelineItemId: input.pipeline_item_id,
+      error: error instanceof Error ? error.message : String(error),
+    });
+    return handleAgentError(error);
   }
 }

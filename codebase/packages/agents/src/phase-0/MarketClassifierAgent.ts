@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type {
   AgentInput,
   Signal,
@@ -7,6 +8,7 @@ import type {
   AgentReadinessTag,
   CompetitiveDensity,
 } from '@company-builder/types';
+import { MarketClassifierInputSchema, MarketClassifierOutputSchema } from '../schemas';
 
 interface MarketClassifierContext {
   signals: Signal[];
@@ -39,6 +41,14 @@ const VALID_AGENT_READINESS_TAGS = new Set<AgentReadinessTag>(['high', 'medium',
 const VALID_COMPETITIVE_DENSITY = new Set<CompetitiveDensity>(['crowded', 'moderate', 'sparse']);
 
 export class MarketClassifierAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return MarketClassifierInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return MarketClassifierOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'market_opportunities';
   }
@@ -46,7 +56,7 @@ export class MarketClassifierAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const context = input.context as unknown as MarketClassifierContext;
+    const context = MarketClassifierInputSchema.parse(input.context);
     const { signals } = context;
 
     const systemPrompt = `You are the Market Classifier agent for the Company Builder platform's Phase 0 Discovery pipeline.

@@ -3,7 +3,8 @@ import type { GateEvaluator, GateOutcome } from '@company-builder/core';
 import type { TaskDispatcher } from '@company-builder/core';
 import type { WatchdogTimer } from '@company-builder/core';
 import type { PipelineItem, PipelinePhase, AgentOutput } from '@company-builder/types';
-import { logger } from '@company-builder/core';
+import { logger, PrerequisiteChecker, type Logger } from '@company-builder/core';
+import { getInFlightCountsByPhase } from '@company-builder/database';
 
 // ---------------------------------------------------------------------------
 // Phase step registries
@@ -41,7 +42,6 @@ const PHASE_STEPS: Record<PipelinePhase, string[]> = {
     'blueprint-packager',
   ],
   // Terminal phases — no steps
-  rejected: [],
   archived: [],
 };
 
@@ -51,6 +51,18 @@ const PHASE_GATE_TRANSITIONS: Partial<Record<PipelinePhase, { from: string; to: 
   phase_1: { from: 'phase_1', to: 'phase_2', next: 'phase_2' },
   phase_2: { from: 'phase_2', to: 'phase_3', next: 'phase_3' },
 };
+
+// Per-phase concurrency limits — max in_progress items per phase
+const PHASE_CONCURRENCY_LIMITS: Record<string, number> = {
+  phase_0: 10,
+  phase_1: 5,
+  phase_2: 3,
+  phase_3: 2,
+};
+
+// Total capacity across all phases (used for backpressure detection)
+const TOTAL_CAPACITY = Object.values(PHASE_CONCURRENCY_LIMITS).reduce((a, b) => a + b, 0);
+const BACKPRESSURE_THRESHOLD = 0.8;
 
 // Default gate evaluation weights per phase
 const GATE_WEIGHTS: Record<string, Record<string, number>> = {
@@ -86,12 +98,18 @@ export interface TickResult {
 // ---------------------------------------------------------------------------
 
 export class PipelineOrchestratorService {
+  private readonly prerequisiteChecker: PrerequisiteChecker;
+  private readonly log: Logger;
+
   constructor(
     private readonly supabase: SupabaseClient,
     private readonly dispatcher: TaskDispatcher,
     private readonly gateEvaluator: GateEvaluator,
     private readonly watchdog: WatchdogTimer,
-  ) {}
+  ) {
+    this.prerequisiteChecker = new PrerequisiteChecker(supabase);
+    this.log = logger.child({ service: 'PipelineOrchestrator' });
+  }
 
   // ---------------------------------------------------------------------------
   // tick() — called by cron every minute
@@ -110,31 +128,60 @@ export class PipelineOrchestratorService {
     const errors: string[] = [];
     let processed = 0;
 
-    logger.info('PipelineOrchestratorService: tick started');
+    this.log.info('PipelineOrchestratorService: tick started');
 
     // Step 1: Check for stalled in_progress items
     try {
       const stalledItems = await this.watchdog.checkForStalledItems();
       for (const item of stalledItems) {
         try {
-          await this.watchdog.markAsBlocked(item.id);
+          await this.watchdog.markAsBlocked(item);
           await this.logEvent(item.id, 'stall_detected', {
             step: item.current_step,
             phase: item.current_phase,
           });
         } catch (err) {
           const msg = err instanceof Error ? err.message : String(err);
-          logger.error('Failed to mark stalled item as blocked', { itemId: item.id, error: msg });
+          this.log.error('Failed to mark stalled item as blocked', { itemId: item.id, error: msg });
           errors.push(`stall-${item.id}: ${msg}`);
         }
       }
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      logger.error('Watchdog check failed', { error: msg });
+      this.log.error('Watchdog check failed', { error: msg });
       errors.push(`watchdog: ${msg}`);
     }
 
-    // Step 2: Load all actionable pipeline items
+    // Step 2: Query current in-flight counts per phase for concurrency enforcement
+    let inFlightCounts: Record<string, number> = {};
+    try {
+      const { data: counts, error: countsError } = await getInFlightCountsByPhase(this.supabase);
+      if (countsError !== null) {
+        this.log.warn('Failed to query in-flight counts, proceeding without concurrency limits', {
+          error: countsError.message,
+        });
+      } else {
+        inFlightCounts = counts;
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : String(err);
+      this.log.warn('Failed to query in-flight counts, proceeding without concurrency limits', {
+        error: msg,
+      });
+    }
+
+    // Backpressure check: warn if total in-flight approaches capacity
+    const totalInFlight = Object.values(inFlightCounts).reduce((a, b) => a + b, 0);
+    if (totalInFlight >= TOTAL_CAPACITY * BACKPRESSURE_THRESHOLD) {
+      this.log.warn('Pipeline backpressure: in-flight items approaching total capacity', {
+        totalInFlight,
+        totalCapacity: TOTAL_CAPACITY,
+        utilizationPct: Math.round((totalInFlight / TOTAL_CAPACITY) * 100),
+        perPhase: inFlightCounts,
+      });
+    }
+
+    // Step 3: Load all actionable pipeline items
     let items: PipelineItem[] = [];
     try {
       const { data, error } = await this.supabase
@@ -151,24 +198,51 @@ export class PipelineOrchestratorService {
       items = (data ?? []) as PipelineItem[];
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      logger.error('Failed to load pipeline items', { error: msg });
+      this.log.error('Failed to load pipeline items', { error: msg });
       errors.push(`query: ${msg}`);
       return { processed, errors };
     }
 
-    // Step 3: Process each item
+    // Step 4: Process each item, enforcing per-phase concurrency limits
+    // Track in-flight counts locally as we dispatch within this tick
+    const tickInFlightCounts = { ...inFlightCounts };
+
     for (const item of items) {
+      const phase = item.current_phase;
+
+      // For pending items that would be dispatched, check phase concurrency
+      if (phase !== null && item.status === 'pending') {
+        const limit = PHASE_CONCURRENCY_LIMITS[phase];
+        if (limit !== undefined) {
+          const currentCount = tickInFlightCounts[phase] ?? 0;
+          if (currentCount >= limit) {
+            this.log.debug('Skipping item — phase at concurrency limit', {
+              itemId: item.id,
+              phase,
+              currentCount,
+              limit,
+            });
+            continue;
+          }
+        }
+      }
+
       try {
         await this.processItem(item);
         processed++;
+
+        // If item was pending and got dispatched, increment the local in-flight count
+        if (phase !== null && item.status === 'pending') {
+          tickInFlightCounts[phase] = (tickInFlightCounts[phase] ?? 0) + 1;
+        }
       } catch (err) {
         const msg = err instanceof Error ? err.message : String(err);
-        logger.error('Failed to process pipeline item', { itemId: item.id, error: msg });
+        this.log.error('Failed to process pipeline item', { itemId: item.id, error: msg });
         errors.push(`item-${item.id}: ${msg}`);
       }
     }
 
-    logger.info('PipelineOrchestratorService: tick completed', {
+    this.log.info('PipelineOrchestratorService: tick completed', {
       processed,
       errorCount: errors.length,
     });
@@ -190,7 +264,7 @@ export class PipelineOrchestratorService {
    */
   async processItem(item: PipelineItem): Promise<void> {
     const phase = item.current_phase;
-    if (phase === null || phase === 'rejected' || phase === 'archived') {
+    if (phase === null || phase === 'archived') {
       return;
     }
 
@@ -220,7 +294,7 @@ export class PipelineOrchestratorService {
 
       if (nextStep === null) {
         // All steps in this phase are done — evaluate gate
-        logger.info('All phase steps completed, evaluating gate', {
+        this.log.info('All phase steps completed, evaluating gate', {
           itemId: item.id,
           phase,
         });
@@ -289,7 +363,7 @@ export class PipelineOrchestratorService {
         phase,
       });
 
-      logger.info('Agent dispatched', {
+      this.log.info('Agent dispatched', {
         itemId: item.id,
         agent: targetStep,
         phase,
@@ -312,7 +386,7 @@ export class PipelineOrchestratorService {
     agentName: string,
     output: AgentOutput,
   ): Promise<void> {
-    logger.info('Agent completion received', { pipelineItemId, agentName, success: output.success });
+    this.log.info('Agent completion received', { pipelineItemId, agentName, success: output.success });
 
     // Load current item state
     const { data: itemData, error: itemError } = await this.supabase
@@ -330,8 +404,8 @@ export class PipelineOrchestratorService {
     const item = itemData as PipelineItem;
     const phase = item.current_phase;
 
-    if (phase === null || phase === 'rejected' || phase === 'archived') {
-      logger.warn('Agent completion received for item in terminal phase', {
+    if (phase === null || phase === 'archived') {
+      this.log.warn('Agent completion received for item in terminal phase', {
         pipelineItemId,
         phase,
       });
@@ -437,7 +511,7 @@ export class PipelineOrchestratorService {
       );
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      logger.error('Gate evaluation failed', { itemId: item.id, phase: currentPhase, error: msg });
+      this.log.error('Gate evaluation failed', { itemId: item.id, phase: currentPhase, error: msg });
 
       // Default to review if gate evaluation fails (safe fallback)
       evaluationResult = {
@@ -450,7 +524,7 @@ export class PipelineOrchestratorService {
 
     const { outcome, score, rationale } = evaluationResult;
 
-    logger.info('Gate evaluated', {
+    this.log.info('Gate evaluated', {
       itemId: item.id,
       phase: currentPhase,
       outcome,
@@ -482,7 +556,7 @@ export class PipelineOrchestratorService {
           last_gate_at: new Date().toISOString(),
           last_gate_reason: rationale,
           last_gate_by: 'orchestrator',
-          current_phase: 'rejected',
+          current_phase: 'archived',
         })
         .eq('id', item.id);
 
@@ -511,6 +585,40 @@ export class PipelineOrchestratorService {
   // ---------------------------------------------------------------------------
 
   async advanceToNextPhase(item: PipelineItem, nextPhase: PipelinePhase): Promise<void> {
+    // Validate prerequisites before allowing the phase transition
+    const prerequisiteResult = await this.prerequisiteChecker.checkPrerequisites(item, nextPhase);
+
+    if (!prerequisiteResult.satisfied) {
+      const missingDescription = prerequisiteResult.missing.join('; ');
+
+      this.log.warn('Phase transition blocked by unmet prerequisites', {
+        itemId: item.id,
+        fromPhase: item.current_phase,
+        targetPhase: nextPhase,
+        missing: prerequisiteResult.missing,
+      });
+
+      // Block the item with a descriptive message instead of advancing
+      await this.supabase
+        .from('pipeline_items')
+        .update({
+          status: 'blocked',
+          last_gate_decision: 'pending_review',
+          last_gate_at: new Date().toISOString(),
+          last_gate_reason: `Prerequisites not met for ${nextPhase}: ${missingDescription}`,
+          last_gate_by: 'orchestrator',
+        })
+        .eq('id', item.id);
+
+      await this.logEvent(item.id, 'prerequisites_not_met', {
+        fromPhase: item.current_phase,
+        targetPhase: nextPhase,
+        missing: prerequisiteResult.missing,
+      });
+
+      return;
+    }
+
     const steps = this.getPhaseSteps(nextPhase);
     const firstStep = steps[0] ?? null;
 
@@ -534,7 +642,7 @@ export class PipelineOrchestratorService {
       firstStep,
     });
 
-    logger.info('Pipeline item advanced to next phase', {
+    this.log.info('Pipeline item advanced to next phase', {
       itemId: item.id,
       fromPhase: item.current_phase,
       toPhase: nextPhase,
@@ -576,7 +684,7 @@ export class PipelineOrchestratorService {
       .maybeSingle();
 
     if (error !== null) {
-      logger.warn('isStepComplete query error', {
+      this.log.warn('isStepComplete query error', {
         pipelineItemId,
         agentName,
         error: error.message,
@@ -606,7 +714,7 @@ export class PipelineOrchestratorService {
       .in('agent_name', steps);
 
     if (error !== null || !Array.isArray(runs)) {
-      logger.warn('collectGateDimensions: failed to load agent runs', {
+      this.log.warn('collectGateDimensions: failed to load agent runs', {
         pipelineItemId,
         error: error?.message,
       });
@@ -702,7 +810,7 @@ export class PipelineOrchestratorService {
       });
     } catch (err) {
       // Event logging failures are non-fatal
-      logger.warn('Failed to log pipeline event', {
+      this.log.warn('Failed to log pipeline event', {
         pipelineItemId,
         eventType,
         error: err instanceof Error ? err.message : String(err),

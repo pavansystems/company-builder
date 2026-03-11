@@ -5,7 +5,6 @@ export type PipelinePhase =
   | 'phase_1'
   | 'phase_2'
   | 'phase_3'
-  | 'rejected'
   | 'archived';
 
 export type PipelineStatus =
@@ -47,6 +46,7 @@ export interface PipelineItem {
   // Tags and notes
   tags: string[] | null;
   priority: PipelinePriority | null;
+  account_id: string;
 }
 
 export interface PipelineItemInsert {
@@ -67,6 +67,7 @@ export interface PipelineItemInsert {
   completed_at?: string | null;
   tags?: string[] | null;
   priority?: PipelinePriority | null;
+  account_id?: string;
 }
 
 export interface GateDecision {
@@ -87,6 +88,7 @@ export interface GateDecision {
 
   // Timestamps
   decided_at: string;
+  account_id: string;
 }
 
 export interface GateDecisionInsert {
@@ -99,6 +101,7 @@ export interface GateDecisionInsert {
   pre_decision_data?: Record<string, unknown> | null;
   override_reason?: string | null;
   decided_at?: string;
+  account_id?: string;
 }
 
 export interface PipelineEvent {

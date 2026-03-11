@@ -1,5 +1,6 @@
 import Link from 'next/link';
 import { SignupForm } from '@/components/auth/SignupForm';
+import { OAuthButtons } from '@/components/auth/OAuthButtons';
 
 export default function SignupPage() {
   return (
@@ -20,6 +21,17 @@ export default function SignupPage() {
         {/* Card */}
         <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-8">
           <SignupForm />
+
+          <div className="relative my-6">
+            <div className="absolute inset-0 flex items-center">
+              <div className="w-full border-t border-slate-200" />
+            </div>
+            <div className="relative flex justify-center text-xs uppercase">
+              <span className="bg-white px-2 text-slate-400">Or continue with</span>
+            </div>
+          </div>
+
+          <OAuthButtons />
 
           <div className="mt-6 text-center text-sm text-slate-500">
             Already have an account?{' '}

@@ -1,7 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type { AgentInput, Concept, ConceptScore } from '@company-builder/types';
 import { AgentPersistenceError } from '@company-builder/core';
+import { ConceptSelectorInputSchema, ConceptSelectorOutputSchema } from '../schemas';
 
 interface ConceptSelectorContext {
   concepts: Concept[];
@@ -23,6 +25,14 @@ interface ConceptSelectorLLMResponse {
 }
 
 export class ConceptSelectorAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return ConceptSelectorInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return ConceptSelectorOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'gate_decisions';
   }
@@ -30,7 +40,7 @@ export class ConceptSelectorAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const context = input.context as unknown as ConceptSelectorContext;
+    const context = ConceptSelectorInputSchema.parse(input.context) as unknown as ConceptSelectorContext;
     const { concepts, scores } = context;
 
     // Build a lookup from conceptId -> score

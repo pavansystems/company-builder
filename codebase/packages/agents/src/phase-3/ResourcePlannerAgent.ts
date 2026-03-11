@@ -1,7 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type { AgentInput } from '@company-builder/types';
 import type { Concept } from '@company-builder/types';
+import { ResourcePlannerInputSchema, ResourcePlannerOutputSchema } from '../schemas';
 
 // ---------------------------------------------------------------------------
 // Input context shape
@@ -45,6 +47,14 @@ interface ResourcePlannerLLMResponse {
 // ---------------------------------------------------------------------------
 
 export class ResourcePlannerAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return ResourcePlannerInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return ResourcePlannerOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'blueprints';
   }
@@ -52,7 +62,7 @@ export class ResourcePlannerAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const ctx = input.context as unknown as ResourcePlannerContext;
+    const ctx = ResourcePlannerInputSchema.parse(input.context);
     const { concept, agentArchitecture, financialProjection } = ctx;
 
     const systemPrompt = `You are the Resource Planner (Phase 3, Step 3.5) for the Company Builder platform.
@@ -229,7 +239,7 @@ Design a lean, realistic resource plan that gives this startup the best chance o
     output: unknown,
     input: AgentInput,
   ): Promise<void> {
-    const ctx = input.context as unknown as ResourcePlannerContext;
+    const ctx = ResourcePlannerInputSchema.parse(input.context);
     const { conceptId } = ctx;
     const data = output as ResourcePlannerLLMResponse;
 

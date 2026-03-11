@@ -28,6 +28,7 @@ export interface AgentRun {
   // Timestamps
   started_at: string;
   completed_at: string | null;
+  account_id: string;
 }
 
 export interface AgentRunInsert {
@@ -46,6 +47,7 @@ export interface AgentRunInsert {
   cost_usd?: number | null;
   started_at?: string;
   completed_at?: string | null;
+  account_id?: string;
 }
 
 export interface AgentConfig {

@@ -1,12 +1,13 @@
 'use client';
 
 import { useState } from 'react';
-import { Download, ChevronDown, FileJson, FileText } from 'lucide-react';
+import { Download, ChevronDown, FileJson, FileText, FileIcon, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
+  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import type { Blueprint } from '@company-builder/types';
@@ -87,8 +88,9 @@ function blueprintToMarkdown(blueprint: Blueprint, conceptTitle: string): string
   return lines.join('\n');
 }
 
-function downloadBlob(content: string, filename: string, mimeType: string) {
-  const blob = new Blob([content], { type: mimeType });
+function downloadBlob(content: string | Blob, filename: string, mimeType?: string) {
+  const blob =
+    content instanceof Blob ? content : new Blob([content], { type: mimeType ?? 'text/plain' });
   const url = URL.createObjectURL(blob);
   const a = document.createElement('a');
   a.href = url;
@@ -100,15 +102,54 @@ function downloadBlob(content: string, filename: string, mimeType: string) {
 }
 
 export function BlueprintExportButton({ blueprint, conceptTitle }: BlueprintExportButtonProps) {
+  const [isGeneratingPdf, setIsGeneratingPdf] = useState(false);
   const safeName = conceptTitle.replace(/[^a-z0-9]/gi, '-').toLowerCase();
+  const dateStr = new Date().toISOString().slice(0, 10);
 
   function handleExportJSON() {
-    downloadBlob(JSON.stringify(blueprint, null, 2), `${safeName}-blueprint.json`, 'application/json');
+    downloadBlob(
+      JSON.stringify(blueprint, null, 2),
+      `${safeName}-blueprint.json`,
+      'application/json'
+    );
   }
 
   function handleExportMarkdown() {
     const md = blueprintToMarkdown(blueprint, conceptTitle);
     downloadBlob(md, `${safeName}-blueprint.md`, 'text/markdown');
+  }
+
+  async function handleExportPdf() {
+    setIsGeneratingPdf(true);
+    try {
+      // Dynamic import to keep the bundle small for non-PDF users
+      const [{ pdf }, { BlueprintPdfDocument }] = await Promise.all([
+        import('@react-pdf/renderer'),
+        import('@/components/blueprint/BlueprintPdfDocument'),
+      ]);
+
+      const { createElement } = await import('react');
+
+      const doc = createElement(BlueprintPdfDocument, { blueprint, conceptTitle });
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const blob = await pdf(doc as any).toBlob();
+
+      downloadBlob(blob, `blueprint-${safeName}-${dateStr}.pdf`);
+    } catch (err) {
+      console.error('PDF generation failed:', err);
+      // Fallback: try the API route
+      try {
+        const res = await fetch(`/api/blueprints/${blueprint.id}/export`);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        downloadBlob(blob, `blueprint-${safeName}-${dateStr}.pdf`);
+      } catch (fallbackErr) {
+        console.error('PDF API fallback also failed:', fallbackErr);
+        alert('Failed to generate PDF. Please try again.');
+      }
+    } finally {
+      setIsGeneratingPdf(false);
+    }
   }
 
   return (
@@ -117,14 +158,28 @@ export function BlueprintExportButton({ blueprint, conceptTitle }: BlueprintExpo
         <Button
           variant="outline"
           size="sm"
+          disabled={isGeneratingPdf}
           className="w-full gap-2 text-xs border-emerald-200 text-emerald-700 hover:bg-emerald-50"
         >
-          <Download className="h-3.5 w-3.5" />
-          Export
+          {isGeneratingPdf ? (
+            <Loader2 className="h-3.5 w-3.5 animate-spin" />
+          ) : (
+            <Download className="h-3.5 w-3.5" />
+          )}
+          {isGeneratingPdf ? 'Generating...' : 'Export'}
           <ChevronDown className="h-3 w-3 ml-auto" />
         </Button>
       </DropdownMenuTrigger>
-      <DropdownMenuContent align="end" className="w-44">
+      <DropdownMenuContent align="end" className="w-48">
+        <DropdownMenuItem
+          onClick={handleExportPdf}
+          disabled={isGeneratingPdf}
+          className="gap-2 text-sm cursor-pointer"
+        >
+          <FileIcon className="h-4 w-4 text-red-500" />
+          Export as PDF
+        </DropdownMenuItem>
+        <DropdownMenuSeparator />
         <DropdownMenuItem onClick={handleExportJSON} className="gap-2 text-sm cursor-pointer">
           <FileJson className="h-4 w-4 text-slate-500" />
           Export as JSON

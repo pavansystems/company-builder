@@ -57,8 +57,32 @@ export {
   getPipelineItems,
   getPipelineItemById,
   getActivePipelineItems,
+  getInFlightCountsByPhase,
   getGateDecisionsForItem,
   getAgentRunsForItem,
   getGateRules,
   getGateRuleForTransition,
+  updateGateRule,
 } from './queries/pipeline';
+
+// Query helpers — sources
+export {
+  getSources,
+  getSourceById,
+  createSource,
+  updateSource,
+  deleteSource,
+} from './queries/sources';
+
+// Query helpers — agent runs (monitoring)
+export {
+  getAgentRuns,
+  getAgentRunStats,
+  getAgentRunById,
+  getCostBreakdown,
+  getDistinctAgentNames,
+} from './queries/agent-runs';
+export type {
+  AgentRunStats,
+  CostBreakdownItem,
+} from './queries/agent-runs';

@@ -1,7 +1,7 @@
 'use client';
 
 import { useState } from 'react';
-import { Plus, Trash2, Edit2 } from 'lucide-react';
+import { Plus, Trash2, Pencil } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
@@ -20,8 +20,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { ConfirmDialog } from '@/components/shared/ConfirmDialog';
-import { StatusBadge } from '@/components/shared/StatusBadge';
-import { formatDate, formatRelativeTime } from '@/lib/utils/formatters';
+import { formatRelativeTime } from '@/lib/utils/formatters';
 import type { Source, SourceType } from '@company-builder/types';
 
 interface SourcesTableProps {
@@ -35,14 +34,14 @@ const SOURCE_TYPE_OPTIONS: { value: SourceType; label: string }[] = [
   { value: 'research_db', label: 'Research DB' },
 ];
 
-interface NewSourceForm {
+interface SourceForm {
   name: string;
   url: string;
   source_type: SourceType;
   scan_frequency_hours: number;
 }
 
-const DEFAULT_FORM: NewSourceForm = {
+const DEFAULT_FORM: SourceForm = {
   name: '',
   url: '',
   source_type: 'rss',
@@ -52,11 +51,37 @@ const DEFAULT_FORM: NewSourceForm = {
 export function SourcesTable({ initialSources }: SourcesTableProps) {
   const [sources, setSources] = useState<Source[]>(initialSources);
   const [showAddModal, setShowAddModal] = useState(false);
-  const [form, setForm] = useState<NewSourceForm>(DEFAULT_FORM);
+  const [editingSource, setEditingSource] = useState<Source | null>(null);
+  const [form, setForm] = useState<SourceForm>(DEFAULT_FORM);
   const [saving, setSaving] = useState(false);
   const [toDelete, setToDelete] = useState<Source | null>(null);
   const [toggling, setToggling] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  function showFeedback(msg: string) {
+    setFeedback(msg);
+    setTimeout(() => setFeedback(null), 3000);
+  }
+
+  function openEdit(source: Source) {
+    setEditingSource(source);
+    setForm({
+      name: source.name,
+      url: source.url ?? '',
+      source_type: source.source_type,
+      scan_frequency_hours:
+        (source.config as any)?.scan_frequency_hours ?? 24,
+    });
+    setError(null);
+  }
+
+  function closeModal() {
+    setShowAddModal(false);
+    setEditingSource(null);
+    setForm(DEFAULT_FORM);
+    setError(null);
+  }
 
   async function handleAdd() {
     setSaving(true);
@@ -67,7 +92,7 @@ export function SourcesTable({ initialSources }: SourcesTableProps) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: form.name,
-          url: form.url,
+          url: form.url || null,
           source_type: form.source_type,
           config: { scan_frequency_hours: form.scan_frequency_hours },
           is_active: true,
@@ -79,8 +104,38 @@ export function SourcesTable({ initialSources }: SourcesTableProps) {
       }
       const created = await res.json();
       setSources((prev) => [created, ...prev]);
-      setShowAddModal(false);
-      setForm(DEFAULT_FORM);
+      closeModal();
+      showFeedback(`"${created.name}" added successfully.`);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'An error occurred');
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  async function handleEdit() {
+    if (!editingSource) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const res = await fetch(`/api/settings/sources/${editingSource.id}`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: form.name,
+          url: form.url || null,
+          source_type: form.source_type,
+          config: { scan_frequency_hours: form.scan_frequency_hours },
+        }),
+      });
+      if (!res.ok) {
+        const body = await res.json().catch(() => ({}));
+        throw new Error(body.error ?? 'Failed to update source');
+      }
+      const updated = await res.json();
+      setSources((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+      closeModal();
+      showFeedback(`"${updated.name}" updated successfully.`);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'An error occurred');
     } finally {
@@ -90,8 +145,11 @@ export function SourcesTable({ initialSources }: SourcesTableProps) {
 
   async function handleDelete(source: Source) {
     try {
-      await fetch(`/api/settings/sources/${source.id}`, { method: 'DELETE' });
-      setSources((prev) => prev.filter((s) => s.id !== source.id));
+      const res = await fetch(`/api/settings/sources/${source.id}`, { method: 'DELETE' });
+      if (res.ok) {
+        setSources((prev) => prev.filter((s) => s.id !== source.id));
+        showFeedback(`"${source.name}" deleted.`);
+      }
     } finally {
       setToDelete(null);
     }
@@ -108,19 +166,32 @@ export function SourcesTable({ initialSources }: SourcesTableProps) {
       if (res.ok) {
         const updated = await res.json();
         setSources((prev) => prev.map((s) => (s.id === updated.id ? updated : s)));
+        showFeedback(
+          `"${source.name}" ${updated.is_active ? 'enabled' : 'disabled'}.`
+        );
       }
     } finally {
       setToggling(null);
     }
   }
 
+  const isEditing = editingSource !== null;
+  const dialogOpen = showAddModal || isEditing;
+
   return (
     <div className="space-y-4">
+      {/* Feedback toast */}
+      {feedback && (
+        <div className="fixed top-4 right-4 z-50 animate-in fade-in slide-in-from-top-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800 shadow-lg">
+          {feedback}
+        </div>
+      )}
+
       <div className="flex justify-end">
         <Button
           size="sm"
           className="gap-2 bg-violet-600 hover:bg-violet-700 text-white text-xs"
-          onClick={() => setShowAddModal(true)}
+          onClick={() => { setShowAddModal(true); setForm(DEFAULT_FORM); setError(null); }}
         >
           <Plus className="h-3.5 w-3.5" />
           Add Source
@@ -163,7 +234,7 @@ export function SourcesTable({ initialSources }: SourcesTableProps) {
                         {source.url}
                       </a>
                     ) : (
-                      <span className="text-slate-400">—</span>
+                      <span className="text-slate-400">&mdash;</span>
                     )}
                   </td>
                   <td className="px-4 py-3">
@@ -197,14 +268,24 @@ export function SourcesTable({ initialSources }: SourcesTableProps) {
                       : '24h'}
                   </td>
                   <td className="px-4 py-3">
-                    <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50"
-                      onClick={() => setToDelete(source)}
-                    >
-                      <Trash2 className="h-3.5 w-3.5" />
-                    </Button>
+                    <div className="flex items-center gap-1">
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-slate-400 hover:text-violet-600 hover:bg-violet-50"
+                        onClick={() => openEdit(source)}
+                      >
+                        <Pencil className="h-3.5 w-3.5" />
+                      </Button>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="h-7 w-7 text-red-400 hover:text-red-600 hover:bg-red-50"
+                        onClick={() => setToDelete(source)}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </Button>
+                    </div>
                   </td>
                 </tr>
               ))
@@ -213,11 +294,11 @@ export function SourcesTable({ initialSources }: SourcesTableProps) {
         </table>
       </div>
 
-      {/* Add source dialog */}
-      <Dialog open={showAddModal} onOpenChange={(o) => { setShowAddModal(o); if (!o) setError(null); }}>
+      {/* Add / Edit source dialog */}
+      <Dialog open={dialogOpen} onOpenChange={(o) => { if (!o) closeModal(); }}>
         <DialogContent className="sm:max-w-[480px]">
           <DialogHeader>
-            <DialogTitle>Add New Source</DialogTitle>
+            <DialogTitle>{isEditing ? 'Edit Source' : 'Add New Source'}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-1.5">
@@ -272,15 +353,17 @@ export function SourcesTable({ initialSources }: SourcesTableProps) {
             {error && <p className="text-xs text-red-600">{error}</p>}
           </div>
           <DialogFooter>
-            <Button variant="outline" onClick={() => { setShowAddModal(false); setError(null); }}>
+            <Button variant="outline" onClick={closeModal}>
               Cancel
             </Button>
             <Button
               className="bg-violet-600 hover:bg-violet-700 text-white"
-              onClick={handleAdd}
+              onClick={isEditing ? handleEdit : handleAdd}
               disabled={saving || !form.name.trim()}
             >
-              {saving ? 'Adding...' : 'Add Source'}
+              {saving
+                ? isEditing ? 'Saving...' : 'Adding...'
+                : isEditing ? 'Save Changes' : 'Add Source'}
             </Button>
           </DialogFooter>
         </DialogContent>
@@ -290,7 +373,7 @@ export function SourcesTable({ initialSources }: SourcesTableProps) {
       <ConfirmDialog
         open={!!toDelete}
         title="Delete Source"
-        description={`Are you sure you want to delete "${toDelete?.name}"? This cannot be undone.`}
+        description={`Are you sure you want to delete "${toDelete?.name}"? This will also remove all content items from this source. This cannot be undone.`}
         confirmLabel="Delete Source"
         variant="destructive"
         onConfirm={() => toDelete && handleDelete(toDelete)}

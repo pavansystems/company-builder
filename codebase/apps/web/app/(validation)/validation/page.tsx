@@ -4,6 +4,7 @@ import { StatusBadge } from '@/components/shared/StatusBadge';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { formatDate } from '@/lib/utils/formatters';
 import { FlaskConical, ChevronRight, CheckCircle, Clock, XCircle } from 'lucide-react';
+import { ValidationRealtimeRefresh } from './components/ValidationRealtimeRefresh';
 
 export const metadata = { title: 'Validation | Company Builder' };
 
@@ -75,6 +76,9 @@ export default async function ValidationPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
+      {/* Realtime subscription — refreshes on agent_runs / gate_decisions changes */}
+      <ValidationRealtimeRefresh />
+
       <div className="flex items-center gap-3">
         <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-amber-100">
           <FlaskConical className="h-5 w-5 text-amber-600" />

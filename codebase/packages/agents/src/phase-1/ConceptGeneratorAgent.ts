@@ -1,7 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type { AgentInput, MarketOpportunity } from '@company-builder/types';
 import { AgentPersistenceError } from '@company-builder/core';
+import { ConceptGeneratorInputSchema, ConceptGeneratorOutputSchema } from '../schemas';
 
 interface ConceptGeneratorContext {
   opportunityId: string;
@@ -25,6 +27,14 @@ interface ConceptGeneratorLLMResponse {
 }
 
 export class ConceptGeneratorAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return ConceptGeneratorInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return ConceptGeneratorOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'concepts';
   }
@@ -32,7 +42,7 @@ export class ConceptGeneratorAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const context = input.context as unknown as ConceptGeneratorContext;
+    const context = ConceptGeneratorInputSchema.parse(input.context);
     const { opportunity, painPoints, landscape } = context;
 
     const systemPrompt = `You are the Concept Generator agent for the Company Builder platform — the creative engine of Phase 1 Ideation.
@@ -144,7 +154,7 @@ Generate 5–8 startup concepts that are genuinely different from each other —
   }
 
   protected async persistOutput(output: unknown, input: AgentInput): Promise<void> {
-    const context = input.context as unknown as ConceptGeneratorContext;
+    const context = ConceptGeneratorInputSchema.parse(input.context);
     const { opportunityId } = context;
     const concepts = output as GeneratedConcept[];
 

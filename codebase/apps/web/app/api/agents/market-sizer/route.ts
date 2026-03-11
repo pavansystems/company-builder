@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { MarketSizerAgent } from '@company-builder/agents';
 import type { AgentInput } from '@company-builder/types';
+import { handleAgentError } from '../_shared/errorHandler';
 
 export const maxDuration = 300;
 
@@ -47,6 +48,6 @@ export async function POST(request: NextRequest) {
     return NextResponse.json(output);
   } catch (error) {
     console.error('[market-sizer] Error:', error);
-    return NextResponse.json({ error: String(error) }, { status: 500 });
+    return handleAgentError(error);
   }
 }

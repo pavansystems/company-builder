@@ -16,6 +16,7 @@ export interface Concept {
   is_active: boolean;
   selected_for_validation: boolean;
   archived_at: string | null;
+  account_id: string;
 }
 
 export interface ConceptInsert {
@@ -34,6 +35,7 @@ export interface ConceptInsert {
   is_active?: boolean;
   selected_for_validation?: boolean;
   archived_at?: string | null;
+  account_id?: string;
 }
 
 export interface ConceptScore {
@@ -53,6 +55,7 @@ export interface ConceptScore {
   weight_differentiation: number;
   weight_revenue_clarity: number;
   reasoning: string | null;
+  account_id: string;
 }
 
 export interface ConceptScoreInsert {
@@ -72,6 +75,7 @@ export interface ConceptScoreInsert {
   weight_differentiation?: number;
   weight_revenue_clarity?: number;
   reasoning?: string | null;
+  account_id?: string;
 }
 
 export type ConceptStatus = 'active' | 'selected' | 'archived' | 'rejected';

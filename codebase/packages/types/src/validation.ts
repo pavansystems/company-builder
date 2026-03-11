@@ -93,6 +93,7 @@ export interface Validation {
   validated_at: string;
   validated_by: string | null;
   updated_at: string;
+  account_id: string;
 }
 
 export interface ValidationInsert {
@@ -132,4 +133,5 @@ export interface ValidationInsert {
   validated_at?: string;
   validated_by?: string | null;
   updated_at?: string;
+  account_id?: string;
 }

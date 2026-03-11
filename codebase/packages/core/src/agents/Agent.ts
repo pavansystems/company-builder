@@ -1,15 +1,17 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { createClient, type SupabaseClient } from '@supabase/supabase-js';
 import type { AgentInput, AgentOutput } from '@company-builder/types';
+import type { z } from 'zod';
 import {
   AgentError,
   AgentInputError,
   AgentLLMError,
+  AgentOutputValidationError,
   AgentPersistenceError,
 } from './AgentError';
 import { withRetry } from './retryPolicy';
 import { estimateCost } from './costTracker';
-import { logger } from '../utils/logger';
+import { logger, type Logger } from '../utils/logger';
 
 export interface AgentConstructorConfig {
   name: string;
@@ -29,6 +31,7 @@ export abstract class Agent {
   protected readonly config: Required<AgentConstructorConfig>;
   protected readonly supabase: SupabaseClient;
   protected readonly claude: Anthropic;
+  protected readonly log: Logger;
 
   constructor(config: AgentConstructorConfig) {
     this.config = {
@@ -43,6 +46,8 @@ export abstract class Agent {
     });
 
     this.claude = new Anthropic({ apiKey: this.config.anthropicApiKey });
+
+    this.log = logger.child({ service: 'agent', agent: this.config.name });
   }
 
   // ---------------------------------------------------------------------------
@@ -68,6 +73,22 @@ export abstract class Agent {
   protected abstract getOutputTableName(): string;
 
   // ---------------------------------------------------------------------------
+  // Optional schema methods — subclasses may override for validation
+  // ---------------------------------------------------------------------------
+
+  /**
+   * Return a Zod schema to validate `input.context` before building prompts.
+   * If not overridden, input context is not schema-validated.
+   */
+  protected getInputSchema?(): z.ZodType<unknown>;
+
+  /**
+   * Return a Zod schema to validate the parsed LLM output before persisting.
+   * If not overridden, output is not schema-validated.
+   */
+  protected getOutputSchema?(): z.ZodType<unknown>;
+
+  // ---------------------------------------------------------------------------
   // Main entry point
   // ---------------------------------------------------------------------------
 
@@ -86,8 +107,7 @@ export abstract class Agent {
     const startTime = Date.now();
     const runId = crypto.randomUUID();
 
-    logger.info('Agent run started', {
-      agentName: this.config.name,
+    this.log.info('Agent run started', {
       runId,
       pipelineItemId: input.pipeline_item_id,
     });
@@ -98,6 +118,19 @@ export abstract class Agent {
     try {
       // Stage 2: Validate input
       this.validateInput(input);
+
+      // Stage 2b: Validate input context against Zod schema (if provided)
+      if (this.getInputSchema) {
+        const inputSchema = this.getInputSchema();
+        if (inputSchema) {
+          const result = inputSchema.safeParse(input.context);
+          if (!result.success) {
+            throw new AgentInputError(
+              `Input context validation failed: ${result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`,
+            );
+          }
+        }
+      }
 
       // Stage 3: Build prompts
       const { systemPrompt, userMessage } = await this.buildPrompts(input);
@@ -111,6 +144,20 @@ export abstract class Agent {
       // Stage 5: Parse response
       const parsedOutput = await this.parseResponse(llmResponse);
 
+      // Stage 5b: Validate parsed output against Zod schema (if provided)
+      if (this.getOutputSchema) {
+        const outputSchema = this.getOutputSchema();
+        if (outputSchema) {
+          const result = outputSchema.safeParse(parsedOutput);
+          if (!result.success) {
+            throw new AgentOutputValidationError(
+              `Output validation failed: ${result.error.issues.map((i) => `${i.path.join('.')}: ${i.message}`).join('; ')}`,
+              result.error,
+            );
+          }
+        }
+      }
+
       // Stage 6: Persist output
       await this.persistOutput(parsedOutput, input);
 
@@ -122,8 +169,7 @@ export abstract class Agent {
 
       const estimatedCostUsd = estimateCost(this.config.modelId, inputTokens, outputTokens);
 
-      logger.info('Agent run completed', {
-        agentName: this.config.name,
+      this.log.info('Agent run completed', {
         runId,
         durationMs,
         inputTokens,
@@ -168,17 +214,25 @@ export abstract class Agent {
     systemPrompt: string,
     userMessage: string,
   ): Promise<Anthropic.Message> {
-    return withRetry(
+    this.log.debug('LLM call starting', {
+      model: this.config.modelId,
+      maxTokens: this.config.maxTokens,
+      temperature: this.config.temperature,
+    });
+
+    const llmStart = Date.now();
+
+    const response = await withRetry(
       async () => {
         try {
-          const response = await this.claude.messages.create({
+          const res = await this.claude.messages.create({
             model: this.config.modelId,
             max_tokens: this.config.maxTokens,
             temperature: this.config.temperature,
             system: systemPrompt,
             messages: [{ role: 'user', content: userMessage }],
           });
-          return response;
+          return res;
         } catch (error) {
           throw new AgentLLMError(
             `LLM call failed: ${error instanceof Error ? error.message : String(error)}`,
@@ -189,6 +243,15 @@ export abstract class Agent {
       3,
       1000,
     );
+
+    this.log.info('LLM call completed', {
+      model: this.config.modelId,
+      durationMs: Date.now() - llmStart,
+      inputTokens: response.usage.input_tokens,
+      outputTokens: response.usage.output_tokens,
+    });
+
+    return response;
   }
 
   protected async persistOutput(output: unknown, input: AgentInput): Promise<void> {
@@ -235,7 +298,7 @@ export abstract class Agent {
 
     if (error !== null) {
       // Non-fatal: log the failure but don't throw
-      logger.warn('Failed to update agent_run cost metrics', {
+      this.log.warn('Failed to update agent_run cost metrics', {
         runId,
         error: error.message,
       });
@@ -246,10 +309,14 @@ export abstract class Agent {
     const errorMessage =
       error instanceof Error ? error.message : String(error);
 
-    logger.error('Agent run failed', {
-      agentName: this.config.name,
+    const errorCode = error instanceof AgentError ? error.code : 'UNKNOWN_ERROR';
+    const errorStack = error instanceof Error ? error.stack : undefined;
+
+    this.log.error('Agent run failed', {
       runId,
+      errorCode,
       error: errorMessage,
+      ...(errorStack !== undefined ? { stack: errorStack } : {}),
     });
 
     // Update agent_run record to failed status
@@ -282,9 +349,8 @@ export abstract class Agent {
 
     if (error !== null) {
       // Non-fatal: warn and continue — not being able to log a run shouldn't abort execution
-      logger.warn('Failed to create agent_run record', {
+      this.log.warn('Failed to create agent_run record', {
         runId,
-        agentName: this.config.name,
         error: error.message,
       });
     }

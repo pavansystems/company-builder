@@ -125,6 +125,7 @@ export interface Blueprint {
   is_finalized: boolean;
   finalized_at: string | null;
   storage_location_pdf: string | null;
+  account_id: string;
 }
 
 export interface BlueprintInsert {
@@ -161,6 +162,7 @@ export interface BlueprintInsert {
   is_finalized?: boolean;
   finalized_at?: string | null;
   storage_location_pdf?: string | null;
+  account_id?: string;
 }
 
 export type BlueprintStatus = 'draft' | 'in_progress' | 'complete' | 'finalized';

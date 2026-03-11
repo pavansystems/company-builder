@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent, computeWeightedScore } from '@company-builder/core';
+import type { z } from 'zod';
 import type { AgentInput, MarketOpportunity, OpportunityScoreInsert } from '@company-builder/types';
+import { OpportunityRankerInputSchema, OpportunityRankerOutputSchema } from '../schemas';
 
 interface OpportunityRankerContext {
   opportunities: MarketOpportunity[];
@@ -44,6 +46,14 @@ const SCORING_WEIGHTS: Record<string, number> = {
 };
 
 export class OpportunityRankerAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return OpportunityRankerInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return OpportunityRankerOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'opportunity_scores';
   }
@@ -51,7 +61,7 @@ export class OpportunityRankerAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const context = input.context as unknown as OpportunityRankerContext;
+    const context = OpportunityRankerInputSchema.parse(input.context);
     const { opportunities } = context;
 
     const systemPrompt = `You are the Opportunity Ranker agent for the Company Builder platform's Phase 0 Discovery pipeline.
@@ -181,7 +191,7 @@ Target Industry: ${opp.target_industry ?? 'N/A'}
 Problem Statement: ${opp.problem_statement ?? 'N/A'}
 Description: ${opp.description ?? 'N/A'}
 Agent Readiness Tag: ${opp.agent_readiness_tag ?? 'N/A'}
-Market Size Estimate: ${opp.market_size_estimate !== null ? `$${(opp.market_size_estimate / 1e9).toFixed(1)}B` : 'unknown'}
+Market Size Estimate: ${opp.market_size_estimate != null ? `$${(opp.market_size_estimate / 1e9).toFixed(1)}B` : 'unknown'}
 Market Size Confidence: ${opp.market_size_confidence ?? 'unknown'}
 Competitive Density: ${opp.competitive_density ?? 'unknown'}
 Enabling Signal IDs: ${Array.isArray(opp.enabling_signals) ? opp.enabling_signals.join(', ') : 'none'}

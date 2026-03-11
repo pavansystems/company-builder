@@ -1,7 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type { AgentInput, Concept, MarketOpportunity } from '@company-builder/types';
 import type { TechnicalRisk, FeasibilityRating } from '@company-builder/types';
+import { FeasibilityAssessorInputSchema, FeasibilityAssessorOutputSchema } from '../schemas';
 
 interface FeasibilityAssessorContext {
   conceptId: string;
@@ -20,6 +22,14 @@ interface FeasibilityAssessorOutput {
 }
 
 export class FeasibilityAssessorAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return FeasibilityAssessorInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return FeasibilityAssessorOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'validations';
   }
@@ -27,7 +37,7 @@ export class FeasibilityAssessorAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const context = input.context as unknown as FeasibilityAssessorContext;
+    const context = FeasibilityAssessorInputSchema.parse(input.context);
     const { concept, opportunity } = context;
 
     const systemPrompt = `You are the Feasibility Assessor agent for the Company Builder platform — the technical due diligence engine of Phase 2 Validation.
@@ -151,7 +161,7 @@ Enumerate every required AI capability with its tier classification, identify te
   }
 
   protected async persistOutput(output: unknown, input: AgentInput): Promise<void> {
-    const context = input.context as unknown as FeasibilityAssessorContext;
+    const context = FeasibilityAssessorInputSchema.parse(input.context);
     const { conceptId } = context;
     const result = output as FeasibilityAssessorOutput;
 

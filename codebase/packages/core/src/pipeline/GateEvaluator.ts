@@ -31,7 +31,7 @@ export class GateEvaluator {
    * 1. Fetch gate_rules row for the phase_from -> phase_to transition
    * 2. Compute weighted composite score from provided dimensions + weights
    * 3. Apply gate-type logic:
-   *    - automatic: score >= high_threshold → advance, score < low_threshold → reject, else → review
+   *    - automatic: score >= high_threshold → advance, else → reject
    *    - manual: always → review
    *    - hybrid: score >= high_threshold → advance, score < low_threshold → reject, else → review
    */
@@ -105,11 +105,9 @@ export class GateEvaluator {
   ): GateOutcome {
     switch (gateType) {
       case 'automatic':
+        // Binary logic: advance only if score meets high threshold, reject otherwise
         if (score >= highThreshold) return 'advance';
-        if (score < lowThreshold) return 'reject';
-        // For automatic gates, anything in the middle band still advances
-        // (the spec says automatic: score >= high → advance, score < low → reject)
-        return 'advance';
+        return 'reject';
 
       case 'manual':
         // Always require human review regardless of score

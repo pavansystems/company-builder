@@ -1,7 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type { AgentInput } from '@company-builder/types';
 import type { Concept } from '@company-builder/types';
+import { BusinessDesignerInputSchema, BusinessDesignerOutputSchema } from '../schemas';
 
 // ---------------------------------------------------------------------------
 // Input context shape
@@ -51,6 +53,14 @@ interface BusinessDesignerLLMResponse {
 // ---------------------------------------------------------------------------
 
 export class BusinessDesignerAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return BusinessDesignerInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return BusinessDesignerOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'blueprints';
   }
@@ -58,7 +68,7 @@ export class BusinessDesignerAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const ctx = input.context as unknown as BusinessDesignerContext;
+    const ctx = BusinessDesignerInputSchema.parse(input.context);
     const { concept, validationSynthesis, marketSizing, unitEconomics } = ctx;
 
     const systemPrompt = `You are the Business Designer agent (Phase 3, Step 3.1) for the Company Builder platform.
@@ -203,7 +213,7 @@ Design a compelling, internally consistent business model grounded in the market
     output: unknown,
     input: AgentInput,
   ): Promise<void> {
-    const ctx = input.context as unknown as BusinessDesignerContext;
+    const ctx = BusinessDesignerInputSchema.parse(input.context);
     const { conceptId } = ctx;
     const data = output as BusinessDesignerLLMResponse;
 

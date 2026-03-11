@@ -17,6 +17,7 @@ export interface Database {
           updated_at: string;
           last_scanned_at: string | null;
           created_by: string | null;
+          account_id: string;
         };
         Insert: {
           id?: string;
@@ -30,6 +31,7 @@ export interface Database {
           updated_at?: string;
           last_scanned_at?: string | null;
           created_by?: string | null;
+          account_id?: string;
         };
         Update: {
           id?: string;
@@ -43,6 +45,7 @@ export interface Database {
           updated_at?: string;
           last_scanned_at?: string | null;
           created_by?: string | null;
+          account_id?: string;
         };
         Relationships: never[];
       };
@@ -61,6 +64,7 @@ export interface Database {
           metadata: Record<string, unknown> | null;
           is_duplicate: boolean;
           is_archived: boolean;
+          account_id: string;
         };
         Insert: {
           id?: string;
@@ -75,6 +79,7 @@ export interface Database {
           metadata?: Record<string, unknown> | null;
           is_duplicate?: boolean;
           is_archived?: boolean;
+          account_id?: string;
         };
         Update: {
           id?: string;
@@ -89,6 +94,7 @@ export interface Database {
           metadata?: Record<string, unknown> | null;
           is_duplicate?: boolean;
           is_archived?: boolean;
+          account_id?: string;
         };
         Relationships: never[];
       };
@@ -105,6 +111,7 @@ export interface Database {
           entities: Record<string, unknown> | null;
           impact_rating: 'low' | 'medium' | 'high' | 'critical' | null;
           is_archived: boolean;
+          account_id: string;
         };
         Insert: {
           id?: string;
@@ -117,6 +124,7 @@ export interface Database {
           entities?: Record<string, unknown> | null;
           impact_rating?: 'low' | 'medium' | 'high' | 'critical' | null;
           is_archived?: boolean;
+          account_id?: string;
         };
         Update: {
           id?: string;
@@ -129,6 +137,7 @@ export interface Database {
           entities?: Record<string, unknown> | null;
           impact_rating?: 'low' | 'medium' | 'high' | 'critical' | null;
           is_archived?: boolean;
+          account_id?: string;
         };
         Relationships: never[];
       };
@@ -150,6 +159,7 @@ export interface Database {
           ranked_at: string | null;
           is_active: boolean;
           archived_at: string | null;
+          account_id: string;
         };
         Insert: {
           id?: string;
@@ -167,6 +177,7 @@ export interface Database {
           ranked_at?: string | null;
           is_active?: boolean;
           archived_at?: string | null;
+          account_id?: string;
         };
         Update: {
           id?: string;
@@ -184,6 +195,7 @@ export interface Database {
           ranked_at?: string | null;
           is_active?: boolean;
           archived_at?: string | null;
+          account_id?: string;
         };
         Relationships: never[];
       };
@@ -206,6 +218,7 @@ export interface Database {
           weight_competitive_density: number;
           weight_timing_confidence: number;
           reasoning: string | null;
+          account_id: string;
         };
         Insert: {
           id?: string;
@@ -224,6 +237,7 @@ export interface Database {
           weight_competitive_density?: number;
           weight_timing_confidence?: number;
           reasoning?: string | null;
+          account_id?: string;
         };
         Update: {
           id?: string;
@@ -242,6 +256,7 @@ export interface Database {
           weight_competitive_density?: number;
           weight_timing_confidence?: number;
           reasoning?: string | null;
+          account_id?: string;
         };
         Relationships: never[];
       };
@@ -254,6 +269,7 @@ export interface Database {
           snapshot_data: unknown[] | null;
           total_opportunities: number | null;
           created_by: string | null;
+          account_id: string;
         };
         Insert: {
           id?: string;
@@ -262,6 +278,7 @@ export interface Database {
           snapshot_data?: unknown[] | null;
           total_opportunities?: number | null;
           created_by?: string | null;
+          account_id?: string;
         };
         Update: {
           id?: string;
@@ -270,6 +287,7 @@ export interface Database {
           snapshot_data?: unknown[] | null;
           total_opportunities?: number | null;
           created_by?: string | null;
+          account_id?: string;
         };
         Relationships: never[];
       };
@@ -291,6 +309,7 @@ export interface Database {
           is_active: boolean;
           selected_for_validation: boolean;
           archived_at: string | null;
+          account_id: string;
         };
         Insert: {
           id?: string;
@@ -308,6 +327,7 @@ export interface Database {
           is_active?: boolean;
           selected_for_validation?: boolean;
           archived_at?: string | null;
+          account_id?: string;
         };
         Update: {
           id?: string;
@@ -325,6 +345,7 @@ export interface Database {
           is_active?: boolean;
           selected_for_validation?: boolean;
           archived_at?: string | null;
+          account_id?: string;
         };
         Relationships: never[];
       };
@@ -347,6 +368,7 @@ export interface Database {
           weight_differentiation: number;
           weight_revenue_clarity: number;
           reasoning: string | null;
+          account_id: string;
         };
         Insert: {
           id?: string;
@@ -365,6 +387,7 @@ export interface Database {
           weight_differentiation?: number;
           weight_revenue_clarity?: number;
           reasoning?: string | null;
+          account_id?: string;
         };
         Update: {
           id?: string;
@@ -383,6 +406,7 @@ export interface Database {
           weight_differentiation?: number;
           weight_revenue_clarity?: number;
           reasoning?: string | null;
+          account_id?: string;
         };
         Relationships: never[];
       };
@@ -425,6 +449,7 @@ export interface Database {
           validated_at: string;
           validated_by: string | null;
           updated_at: string;
+          account_id: string;
         };
         Insert: {
           id?: string;
@@ -463,6 +488,7 @@ export interface Database {
           validated_at?: string;
           validated_by?: string | null;
           updated_at?: string;
+          account_id?: string;
         };
         Update: {
           id?: string;
@@ -501,6 +527,7 @@ export interface Database {
           validated_at?: string;
           validated_by?: string | null;
           updated_at?: string;
+          account_id?: string;
         };
         Relationships: never[];
       };
@@ -540,6 +567,7 @@ export interface Database {
           is_finalized: boolean;
           finalized_at: string | null;
           storage_location_pdf: string | null;
+          account_id: string;
         };
         Insert: {
           id?: string;
@@ -575,6 +603,7 @@ export interface Database {
           is_finalized?: boolean;
           finalized_at?: string | null;
           storage_location_pdf?: string | null;
+          account_id?: string;
         };
         Update: {
           id?: string;
@@ -610,6 +639,7 @@ export interface Database {
           is_finalized?: boolean;
           finalized_at?: string | null;
           storage_location_pdf?: string | null;
+          account_id?: string;
         };
         Relationships: never[];
       };
@@ -633,6 +663,7 @@ export interface Database {
           completed_at: string | null;
           tags: unknown | null;
           priority: 'low' | 'normal' | 'high' | null;
+          account_id: string;
         };
         Insert: {
           id?: string;
@@ -652,6 +683,7 @@ export interface Database {
           completed_at?: string | null;
           tags?: unknown | null;
           priority?: 'low' | 'normal' | 'high' | null;
+          account_id?: string;
         };
         Update: {
           id?: string;
@@ -671,6 +703,7 @@ export interface Database {
           completed_at?: string | null;
           tags?: unknown | null;
           priority?: 'low' | 'normal' | 'high' | null;
+          account_id?: string;
         };
         Relationships: never[];
       };
@@ -686,6 +719,7 @@ export interface Database {
           pre_decision_data: Record<string, unknown> | null;
           override_reason: string | null;
           decided_at: string;
+          account_id: string;
         };
         Insert: {
           id?: string;
@@ -697,6 +731,7 @@ export interface Database {
           pre_decision_data?: Record<string, unknown> | null;
           override_reason?: string | null;
           decided_at?: string;
+          account_id?: string;
         };
         Update: {
           id?: string;
@@ -708,6 +743,7 @@ export interface Database {
           pre_decision_data?: Record<string, unknown> | null;
           override_reason?: string | null;
           decided_at?: string;
+          account_id?: string;
         };
         Relationships: never[];
       };
@@ -763,6 +799,7 @@ export interface Database {
           created_at: string;
           resolved: boolean;
           resolved_at: string | null;
+          account_id: string;
         };
         Insert: {
           id?: string;
@@ -777,6 +814,7 @@ export interface Database {
           created_at?: string;
           resolved?: boolean;
           resolved_at?: string | null;
+          account_id?: string;
         };
         Update: {
           id?: string;
@@ -791,6 +829,7 @@ export interface Database {
           created_at?: string;
           resolved?: boolean;
           resolved_at?: string | null;
+          account_id?: string;
         };
         Relationships: never[];
       };
@@ -806,6 +845,7 @@ export interface Database {
           learning_detail: string | null;
           occurred_at: string;
           recorded_at: string;
+          account_id: string;
         };
         Insert: {
           id?: string;
@@ -817,6 +857,7 @@ export interface Database {
           learning_detail?: string | null;
           occurred_at?: string;
           recorded_at?: string;
+          account_id?: string;
         };
         Update: {
           id?: string;
@@ -828,6 +869,7 @@ export interface Database {
           learning_detail?: string | null;
           occurred_at?: string;
           recorded_at?: string;
+          account_id?: string;
         };
         Relationships: never[];
       };
@@ -849,6 +891,7 @@ export interface Database {
           cost_usd: number | null;
           started_at: string;
           completed_at: string | null;
+          account_id: string;
         };
         Insert: {
           id?: string;
@@ -866,6 +909,7 @@ export interface Database {
           cost_usd?: number | null;
           started_at?: string;
           completed_at?: string | null;
+          account_id?: string;
         };
         Update: {
           id?: string;
@@ -883,6 +927,7 @@ export interface Database {
           cost_usd?: number | null;
           started_at?: string;
           completed_at?: string | null;
+          account_id?: string;
         };
         Relationships: never[];
       };

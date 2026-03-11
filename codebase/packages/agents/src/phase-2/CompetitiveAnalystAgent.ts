@@ -1,7 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type { AgentInput, Concept, MarketOpportunity } from '@company-builder/types';
 import type { CompetitorProfile, VulnerabilityMap, CompetitiveIntensity } from '@company-builder/types';
+import { CompetitiveAnalystInputSchema, CompetitiveAnalystOutputSchema } from '../schemas';
 
 interface CompetitiveAnalystContext {
   conceptId: string;
@@ -18,6 +20,14 @@ interface CompetitiveAnalystOutput {
 }
 
 export class CompetitiveAnalystAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return CompetitiveAnalystInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return CompetitiveAnalystOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'validations';
   }
@@ -25,7 +35,7 @@ export class CompetitiveAnalystAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const context = input.context as unknown as CompetitiveAnalystContext;
+    const context = CompetitiveAnalystInputSchema.parse(input.context);
     const { concept, opportunity } = context;
 
     const systemPrompt = `You are the Competitive Analyst agent for the Company Builder platform — the strategic intelligence engine of Phase 2 Validation.
@@ -129,7 +139,7 @@ Identify 3–6 key competitors (direct and indirect), map the specific vulnerabi
   }
 
   protected async persistOutput(output: unknown, input: AgentInput): Promise<void> {
-    const context = input.context as unknown as CompetitiveAnalystContext;
+    const context = CompetitiveAnalystInputSchema.parse(input.context);
     const { conceptId } = context;
     const result = output as CompetitiveAnalystOutput;
 

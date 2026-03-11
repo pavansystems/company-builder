@@ -3,6 +3,7 @@ import { createServerSupabaseClient } from '@/lib/supabase/server';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { formatDate } from '@/lib/utils/formatters';
 import { BookOpen, ChevronRight, CheckCircle } from 'lucide-react';
+import { BlueprintRealtimeRefresh } from './components/BlueprintRealtimeRefresh';
 
 export const metadata = { title: 'Blueprints | Company Builder' };
 
@@ -28,6 +29,9 @@ export default async function BlueprintListPage() {
 
   return (
     <div className="p-6 max-w-6xl mx-auto space-y-6">
+      {/* Realtime subscription — refreshes on blueprint-phase pipeline changes */}
+      <BlueprintRealtimeRefresh />
+
       <div className="flex items-center gap-3">
         <div className="flex items-center justify-center w-10 h-10 rounded-xl bg-emerald-100">
           <BookOpen className="h-5 w-5 text-emerald-600" />

@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import type { Source } from '@company-builder/types';
+import { logger } from '@company-builder/core';
+
+const log = logger.child({ service: 'api', route: 'cron/phase-0-scan' });
 
 export const maxDuration = 300;
 
@@ -49,7 +52,7 @@ export async function GET(request: NextRequest) {
     .order('last_scanned_at', { ascending: true, nullsFirst: true });
 
   if (sourcesError !== null) {
-    console.error('[phase-0-scan] Failed to fetch active sources:', sourcesError.message);
+    log.error('Failed to fetch active sources', { error: sourcesError.message });
     return NextResponse.json(
       { error: `Failed to fetch sources: ${sourcesError.message}` },
       { status: 500 },
@@ -58,7 +61,10 @@ export async function GET(request: NextRequest) {
 
   const activeSources = (sources ?? []) as Source[];
 
+  log.info('Phase 0 scan started', { sourceCount: activeSources.length });
+
   if (activeSources.length === 0) {
+    log.info('No active sources found, skipping scan');
     return NextResponse.json({
       success: true,
       message: 'No active sources found — nothing to scan.',
@@ -96,7 +102,10 @@ export async function GET(request: NextRequest) {
 
     scanResult = (await response.json()) as Record<string, unknown>;
   } catch (error) {
-    console.error('[phase-0-scan] Source scanner call failed:', error);
+    log.error('Source scanner call failed', {
+      error: error instanceof Error ? error.message : String(error),
+      sourceCount: activeSources.length,
+    });
     return NextResponse.json(
       { error: `Source scanner failed: ${String(error)}` },
       { status: 500 },
@@ -114,8 +123,16 @@ export async function GET(request: NextRequest) {
 
   if (updateError !== null) {
     // Non-fatal: log but don't fail the response
-    console.warn('[phase-0-scan] Failed to update last_scanned_at:', updateError.message);
+    log.warn('Failed to update last_scanned_at', { error: updateError.message });
   }
+
+  log.info('Phase 0 scan completed', {
+    sourcesScanned: activeSources.length,
+    scannerSuccess: scanResult.success,
+    tokensUsed: scanResult.tokens_used,
+    costUsd: scanResult.cost_usd,
+    durationMs: scanResult.duration_ms,
+  });
 
   return NextResponse.json({
     success: true,

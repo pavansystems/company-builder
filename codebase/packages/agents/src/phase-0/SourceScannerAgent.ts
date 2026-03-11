@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type { AgentInput, Source, ContentItemInsert } from '@company-builder/types';
+import { SourceScannerInputSchema, SourceScannerOutputSchema } from '../schemas';
 
 interface SourceScannerContext {
   sources: Source[];
@@ -36,6 +38,14 @@ interface SourceScannerLLMResponse {
 }
 
 export class SourceScannerAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return SourceScannerInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return SourceScannerOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'content_items';
   }
@@ -43,7 +53,7 @@ export class SourceScannerAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const context = input.context as unknown as SourceScannerContext;
+    const context = SourceScannerInputSchema.parse(input.context);
     const { sources } = context;
 
     const systemPrompt = `You are the Source Scanner agent for the Company Builder platform's Phase 0 Discovery pipeline.

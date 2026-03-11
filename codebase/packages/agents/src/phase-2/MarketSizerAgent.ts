@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type { AgentInput, Concept, MarketOpportunity } from '@company-builder/types';
+import { MarketSizerInputSchema, MarketSizerOutputSchema } from '../schemas';
 
 interface MarketSizerContext {
   conceptId: string;
@@ -19,6 +21,14 @@ interface MarketSizerOutput {
 }
 
 export class MarketSizerAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return MarketSizerInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return MarketSizerOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'validations';
   }
@@ -26,7 +36,7 @@ export class MarketSizerAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const context = input.context as unknown as MarketSizerContext;
+    const context = MarketSizerInputSchema.parse(input.context);
     const { concept, opportunity } = context;
 
     const systemPrompt = `You are the Market Sizer agent for the Company Builder platform — the quantitative market intelligence engine of Phase 2 Validation.
@@ -122,7 +132,7 @@ Produce TAM, SAM, and SOM estimates using both top-down and bottom-up approaches
   }
 
   protected async persistOutput(output: unknown, input: AgentInput): Promise<void> {
-    const context = input.context as unknown as MarketSizerContext;
+    const context = MarketSizerInputSchema.parse(input.context);
     const { conceptId } = context;
     const result = output as MarketSizerOutput;
 

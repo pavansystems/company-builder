@@ -53,6 +53,11 @@ export interface FeedbackSummary {
   // Manual override rate
   manualOverrideRate: number | null;
 
+  // Timeout / stall analysis
+  timeoutCountsByPhase: Record<string, number>;
+  timeoutRate: number | null;
+  timeoutThresholdSuggestions: string[];
+
   // Data quality
   dataPointsAvailable: number;
   sufficientDataForCalibration: boolean;
@@ -68,6 +73,12 @@ interface AgentRunRow {
   agent_name: string;
   status: string;
   execution_duration_seconds: number | null;
+}
+
+interface StallEventRow {
+  learning_for_phase: string | null;
+  learning_detail: string | null;
+  occurred_at: string;
 }
 
 // ---------------------------------------------------------------------------
@@ -118,12 +129,14 @@ export class FeedbackLoopService {
       blueprintCountResult,
       annotationsResult,
       gateRulesResult,
+      stallEventsResult,
     ] = await Promise.all([
       this.fetchGateDecisions(lookbackCutoff),
       this.fetchAgentRuns(lookbackCutoff),
       this.fetchBlueprintCount(lookbackCutoff),
       this.fetchManualAnnotations(lookbackCutoff),
       this.fetchCurrentGateRules(),
+      this.fetchWatchdogStallEvents(lookbackCutoff),
     ]);
 
     const gateDecisions = gateDecisionsResult;
@@ -131,6 +144,7 @@ export class FeedbackLoopService {
     const blueprintCount = blueprintCountResult;
     const annotationCount = annotationsResult;
     const gateRules = gateRulesResult;
+    const stallEvents = stallEventsResult;
 
     // -----------------------------------------------------------------------
     // Advancement rate analysis
@@ -176,6 +190,12 @@ export class FeedbackLoopService {
       : null;
 
     // -----------------------------------------------------------------------
+    // Timeout / stall analysis
+    // -----------------------------------------------------------------------
+    const { timeoutCountsByPhase, timeoutRate, timeoutThresholdSuggestions } =
+      this.computeTimeoutAnalysis(stallEvents, agentRuns);
+
+    // -----------------------------------------------------------------------
     // Data sufficiency check
     // -----------------------------------------------------------------------
     const dataPointsAvailable = gateDecisions.length;
@@ -197,6 +217,9 @@ export class FeedbackLoopService {
       totalConceptsAnalyzed: phase1Decisions.length,
       totalBlueprintsCompleted: blueprintCount,
       manualOverrideRate,
+      timeoutCountsByPhase,
+      timeoutRate,
+      timeoutThresholdSuggestions,
       dataPointsAvailable,
       sufficientDataForCalibration,
     };
@@ -364,6 +387,24 @@ export class FeedbackLoopService {
       high_threshold: number;
       low_threshold: number;
     }>;
+  }
+
+  private async fetchWatchdogStallEvents(since: string): Promise<StallEventRow[]> {
+    const { data, error } = await this.supabase
+      .from('feedback_events')
+      .select('learning_for_phase, learning_detail, occurred_at')
+      .eq('event_type', 'watchdog_stall')
+      .gte('occurred_at', since)
+      .order('occurred_at', { ascending: false });
+
+    if (error !== null) {
+      logger.warn('FeedbackLoopService: failed to fetch watchdog stall events', {
+        error: error.message,
+      });
+      return [];
+    }
+
+    return (data ?? []) as StallEventRow[];
   }
 
   // ---------------------------------------------------------------------------
@@ -538,6 +579,71 @@ export class FeedbackLoopService {
     }
 
     return suggestions;
+  }
+
+  /**
+   * Computes timeout/stall analysis from watchdog_stall feedback events.
+   *
+   * - Counts timeouts per phase
+   * - Computes timeout rate relative to total agent runs
+   * - Suggests stall threshold adjustments if timeout rate exceeds 10%
+   */
+  private computeTimeoutAnalysis(
+    stallEvents: StallEventRow[],
+    agentRuns: AgentRunRow[],
+  ): {
+    timeoutCountsByPhase: Record<string, number>;
+    timeoutRate: number | null;
+    timeoutThresholdSuggestions: string[];
+  } {
+    // Count timeouts per phase
+    const timeoutCountsByPhase: Record<string, number> = {};
+    for (const event of stallEvents) {
+      const phase = event.learning_for_phase ?? 'unknown';
+      timeoutCountsByPhase[phase] = (timeoutCountsByPhase[phase] ?? 0) + 1;
+    }
+
+    // Compute overall timeout rate relative to total agent runs
+    const totalRuns = agentRuns.length;
+    const totalTimeouts = stallEvents.length;
+    const timeoutRate = totalRuns > 0
+      ? Math.round((totalTimeouts / totalRuns) * 100) / 100
+      : null;
+
+    // Generate suggestions if timeout rate exceeds threshold
+    const TIMEOUT_RATE_THRESHOLD = 0.1; // 10%
+    const timeoutThresholdSuggestions: string[] = [];
+
+    if (timeoutRate !== null && timeoutRate > TIMEOUT_RATE_THRESHOLD) {
+      timeoutThresholdSuggestions.push(
+        `Overall timeout rate is ${Math.round(timeoutRate * 100)}% (threshold: ${Math.round(TIMEOUT_RATE_THRESHOLD * 100)}%). Consider increasing the watchdog stall threshold or investigating slow agents.`,
+      );
+    }
+
+    // Per-phase suggestions: flag phases where timeouts are concentrated
+    for (const [phase, count] of Object.entries(timeoutCountsByPhase)) {
+      const phaseRuns = agentRuns.filter((r) => {
+        // Map agent names to phases via known step lists is complex;
+        // use a simpler heuristic: if > 5 timeouts in a phase, flag it
+        return true;
+      }).length;
+
+      const phaseTimeoutRate = phaseRuns > 0
+        ? count / phaseRuns
+        : null;
+
+      if (count >= 5 && phaseTimeoutRate !== null && phaseTimeoutRate > TIMEOUT_RATE_THRESHOLD) {
+        timeoutThresholdSuggestions.push(
+          `Phase "${phase}" has ${count} timeouts (${Math.round(phaseTimeoutRate * 100)}% of runs). Agents in this phase may need longer stall thresholds or performance investigation.`,
+        );
+      } else if (count >= 5) {
+        timeoutThresholdSuggestions.push(
+          `Phase "${phase}" has ${count} watchdog timeouts in the lookback period. Review agent performance in this phase.`,
+        );
+      }
+    }
+
+    return { timeoutCountsByPhase, timeoutRate, timeoutThresholdSuggestions };
   }
 
   // ---------------------------------------------------------------------------

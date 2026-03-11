@@ -20,6 +20,7 @@ export interface Signal {
   entities: SignalEntities | null;
   impact_rating: ImpactRating | null;
   is_archived: boolean;
+  account_id: string;
 }
 
 export interface SignalInsert {
@@ -33,6 +34,7 @@ export interface SignalInsert {
   entities?: SignalEntities | null;
   impact_rating?: ImpactRating | null;
   is_archived?: boolean;
+  account_id?: string;
 }
 
 export interface MarketOpportunity {
@@ -51,6 +53,7 @@ export interface MarketOpportunity {
   ranked_at: string | null;
   is_active: boolean;
   archived_at: string | null;
+  account_id: string;
 }
 
 export interface MarketOpportunityInsert {
@@ -69,6 +72,7 @@ export interface MarketOpportunityInsert {
   ranked_at?: string | null;
   is_active?: boolean;
   archived_at?: string | null;
+  account_id?: string;
 }
 
 export interface OpportunityScore {
@@ -88,6 +92,7 @@ export interface OpportunityScore {
   weight_competitive_density: number;
   weight_timing_confidence: number;
   reasoning: string | null;
+  account_id: string;
 }
 
 export interface OpportunityScoreInsert {
@@ -107,6 +112,7 @@ export interface OpportunityScoreInsert {
   weight_competitive_density?: number;
   weight_timing_confidence?: number;
   reasoning?: string | null;
+  account_id?: string;
 }
 
 export interface WatchlistVersionSnapshotItem {
@@ -125,6 +131,7 @@ export interface WatchlistVersion {
   snapshot_data: WatchlistVersionSnapshotItem[] | null;
   total_opportunities: number | null;
   created_by: string | null;
+  account_id: string;
 }
 
 export interface WatchlistVersionInsert {
@@ -134,6 +141,7 @@ export interface WatchlistVersionInsert {
   snapshot_data?: WatchlistVersionSnapshotItem[] | null;
   total_opportunities?: number | null;
   created_by?: string | null;
+  account_id?: string;
 }
 
 export interface SignalCluster {

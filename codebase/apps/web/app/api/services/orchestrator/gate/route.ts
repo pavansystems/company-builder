@@ -111,6 +111,7 @@ export async function POST(request: NextRequest) {
     decision_reason: notes ?? null,
     override_reason: `Human review: ${action}`,
     decided_at: decidedAt,
+    account_id: user.id,
   });
 
   // Update pipeline item based on action

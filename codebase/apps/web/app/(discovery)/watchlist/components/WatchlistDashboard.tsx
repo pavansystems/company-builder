@@ -1,7 +1,9 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
 import type { WatchlistVersion, WatchlistItem } from '@company-builder/types';
+import { useRealtimeSubscription } from '@/lib/hooks/useRealtimeSubscription';
 import { WatchlistHeader } from './WatchlistHeader';
 import { OpportunityGrid } from './OpportunityGrid';
 
@@ -23,9 +25,26 @@ export function WatchlistDashboard({
   initialVersion,
   allVersions,
 }: WatchlistDashboardProps) {
+  const router = useRouter();
   const [currentVersionId, setCurrentVersionId] = useState(initialVersion.id);
   const [currentData, setCurrentData] = useState(initialVersion);
   const [loading, setLoading] = useState(false);
+
+  // Subscribe to pipeline_items changes filtered to discovery phase (phase_0)
+  // to auto-refresh when new opportunities arrive
+  useRealtimeSubscription('pipeline_items', {
+    event: '*',
+    filter: 'current_phase=eq.phase_0',
+    onInsert: () => router.refresh(),
+    onUpdate: () => router.refresh(),
+    onDelete: () => router.refresh(),
+  });
+
+  // Subscribe to watchlist_versions for new published watchlists
+  useRealtimeSubscription('watchlist_versions', {
+    event: 'INSERT',
+    onInsert: () => router.refresh(),
+  });
 
   async function handleVersionChange(versionId: string) {
     if (versionId === currentVersionId) return;

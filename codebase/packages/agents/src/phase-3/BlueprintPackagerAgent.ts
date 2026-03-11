@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type { AgentInput } from '@company-builder/types';
+import { BlueprintPackagerInputSchema, BlueprintPackagerOutputSchema } from '../schemas';
 
 // ---------------------------------------------------------------------------
 // Input context shape
@@ -98,6 +100,14 @@ interface BlueprintPackagerLLMResponse {
 // ---------------------------------------------------------------------------
 
 export class BlueprintPackagerAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return BlueprintPackagerInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return BlueprintPackagerOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'blueprints';
   }
@@ -109,7 +119,7 @@ export class BlueprintPackagerAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const ctx = input.context as unknown as BlueprintPackagerContext;
+    const ctx = BlueprintPackagerInputSchema.parse(input.context);
     const { conceptId, blueprintId } = ctx;
 
     // -----------------------------------------------------------------------
@@ -360,7 +370,7 @@ Write a compelling, specific, data-driven executive summary that makes an invest
     output: unknown,
     input: AgentInput,
   ): Promise<void> {
-    const ctx = input.context as unknown as BlueprintPackagerContext;
+    const ctx = BlueprintPackagerInputSchema.parse(input.context);
     const { conceptId, blueprintId } = ctx;
     const data = output as BlueprintPackagerLLMResponse;
 

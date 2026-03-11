@@ -213,3 +213,157 @@ export async function getGateRuleForTransition(
 
   return { data, error: null };
 }
+
+// ---------------------------------------------------------------------------
+// getReviewQueueItems
+// Returns items with status 'blocked' or last_gate_decision 'review',
+// ordered by entered_phase_at (oldest first for queue priority).
+// ---------------------------------------------------------------------------
+
+export async function getReviewQueueItems(
+  client: SupabaseClient<Database>,
+  options: {
+    phase?: PipelineItem['current_phase'];
+    limit?: number;
+  } = {}
+): Promise<{ data: PipelineItem[]; count: number | null; error: Error | null }> {
+  const { phase, limit = 100 } = options;
+
+  let query = client
+    .from('pipeline_items')
+    .select('*', { count: 'exact' })
+    .or('status.eq.blocked,last_gate_decision.eq.review')
+    .order('entered_phase_at', { ascending: true })
+    .limit(limit);
+
+  if (phase !== undefined && phase !== null) {
+    query = query.eq('current_phase', phase);
+  }
+
+  const { data, count, error } = await query;
+
+  if (error !== null) {
+    return { data: [], count: null, error: new Error(error.message) };
+  }
+
+  return { data: data ?? [], count, error: null };
+}
+
+// ---------------------------------------------------------------------------
+// getReviewItemDetail
+// Returns a single pipeline item with its related agent runs and gate decisions.
+// ---------------------------------------------------------------------------
+
+export async function getReviewItemDetail(
+  client: SupabaseClient<Database>,
+  itemId: string
+): Promise<{
+  data: {
+    item: PipelineItem | null;
+    agentRuns: AgentRun[];
+    gateDecisions: GateDecision[];
+  };
+  error: Error | null;
+}> {
+  // Fetch item
+  const { data: item, error: itemError } = await client
+    .from('pipeline_items')
+    .select('*')
+    .eq('id', itemId)
+    .single();
+
+  if (itemError !== null) {
+    if (itemError.code === 'PGRST116') {
+      return { data: { item: null, agentRuns: [], gateDecisions: [] }, error: null };
+    }
+    return {
+      data: { item: null, agentRuns: [], gateDecisions: [] },
+      error: new Error(itemError.message),
+    };
+  }
+
+  // Fetch related agent runs
+  const { data: agentRuns, error: runsError } = await client
+    .from('agent_runs')
+    .select('*')
+    .eq('pipeline_item_id', itemId)
+    .order('started_at', { ascending: false });
+
+  if (runsError !== null) {
+    return {
+      data: { item, agentRuns: [], gateDecisions: [] },
+      error: new Error(runsError.message),
+    };
+  }
+
+  // Fetch gate decisions
+  const { data: gateDecisions, error: gateError } = await client
+    .from('gate_decisions')
+    .select('*')
+    .eq('pipeline_item_id', itemId)
+    .order('decided_at', { ascending: false });
+
+  if (gateError !== null) {
+    return {
+      data: { item, agentRuns: agentRuns ?? [], gateDecisions: [] },
+      error: new Error(gateError.message),
+    };
+  }
+
+  return {
+    data: { item, agentRuns: agentRuns ?? [], gateDecisions: gateDecisions ?? [] },
+    error: null,
+  };
+}
+
+// ---------------------------------------------------------------------------
+// getInFlightCountsByPhase
+// Returns the count of in_progress pipeline items grouped by current_phase.
+// ---------------------------------------------------------------------------
+
+export async function getInFlightCountsByPhase(
+  client: SupabaseClient<Database>
+): Promise<{ data: Record<string, number>; error: Error | null }> {
+  const { data, error } = await client
+    .from('pipeline_items')
+    .select('current_phase')
+    .eq('status', 'in_progress');
+
+  if (error !== null) {
+    return { data: {}, error: new Error(error.message) };
+  }
+
+  const counts: Record<string, number> = {};
+  for (const row of data ?? []) {
+    const phase = row.current_phase;
+    if (phase !== null) {
+      counts[phase] = (counts[phase] ?? 0) + 1;
+    }
+  }
+
+  return { data: counts, error: null };
+}
+
+// ---------------------------------------------------------------------------
+// updateGateRule
+// Updates an existing gate rule (thresholds, gate type, etc.).
+// ---------------------------------------------------------------------------
+
+export async function updateGateRule(
+  client: SupabaseClient<Database>,
+  id: string,
+  updates: Partial<Pick<GateRule, 'gate_type' | 'high_threshold' | 'low_threshold' | 'config'>>
+): Promise<{ data: GateRule | null; error: Error | null }> {
+  const { data, error } = await client
+    .from('gate_rules')
+    .update({ ...updates, updated_at: new Date().toISOString() })
+    .eq('id', id)
+    .select()
+    .single();
+
+  if (error !== null) {
+    return { data: null, error: new Error(error.message) };
+  }
+
+  return { data, error: null };
+}

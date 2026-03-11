@@ -49,9 +49,20 @@ function RangeSlider({
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <label className="text-xs font-semibold text-slate-600">{label}</label>
-        <span className="text-sm font-bold text-slate-900 tabular-nums w-8 text-right">
-          {value}
-        </span>
+        <input
+          type="number"
+          min={min}
+          max={max}
+          step={step}
+          value={value}
+          aria-label={label}
+          title={label}
+          onChange={(e) => {
+            const n = Number(e.target.value);
+            if (!isNaN(n) && n >= min && n <= max) onChange(n);
+          }}
+          className="w-14 text-sm font-bold text-slate-900 tabular-nums text-right border border-slate-200 rounded px-1.5 py-0.5 focus:outline-none focus:border-violet-400"
+        />
       </div>
       <input
         type="range"
@@ -90,6 +101,12 @@ export function ThresholdEditor({ gateRules }: ThresholdEditorProps) {
   const [saving, setSaving] = useState<string | null>(null);
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
+  const [feedback, setFeedback] = useState<string | null>(null);
+
+  function showFeedback(msg: string) {
+    setFeedback(msg);
+    setTimeout(() => setFeedback(null), 3000);
+  }
 
   function updateRule(id: string, updates: Partial<GateRule>) {
     setRules((prev) =>
@@ -122,6 +139,11 @@ export function ThresholdEditor({ gateRules }: ThresholdEditorProps) {
       }
       setRules((prev) => prev.map((r) => (r.id === rule.id ? { ...r, _changed: false } : r)));
       setSavedIds((prev) => new Set(prev).add(rule.id));
+      const label =
+        PHASE_LABELS[`${rule.phase_from}→${rule.phase_to}`] ??
+        PHASE_LABELS[rule.phase_from] ??
+        `${rule.phase_from} → ${rule.phase_to}`;
+      showFeedback(`${label} saved successfully.`);
     } catch (e) {
       setErrors((prev) => ({
         ...prev,
@@ -134,6 +156,13 @@ export function ThresholdEditor({ gateRules }: ThresholdEditorProps) {
 
   return (
     <div className="space-y-6">
+      {/* Feedback toast */}
+      {feedback && (
+        <div className="fixed top-4 right-4 z-50 animate-in fade-in slide-in-from-top-2 rounded-lg border border-green-200 bg-green-50 px-4 py-3 text-sm font-medium text-green-800 shadow-lg">
+          {feedback}
+        </div>
+      )}
+
       {rules.map((rule) => {
         const phaseLabel =
           PHASE_LABELS[`${rule.phase_from}→${rule.phase_to}`] ??

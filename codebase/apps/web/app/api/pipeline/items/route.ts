@@ -49,6 +49,13 @@ export async function GET(request: NextRequest) {
 export async function POST(request: NextRequest) {
   try {
     const supabase = await createServerSupabaseClient();
+
+    // Get authenticated user for account isolation
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) {
+      return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
+    }
+
     const body = await request.json();
 
     const {
@@ -96,6 +103,7 @@ export async function POST(request: NextRequest) {
         tags: tags ?? null,
         entered_phase_at: now,
         entered_step_at: now,
+        account_id: user.id,
       })
       .select()
       .single();

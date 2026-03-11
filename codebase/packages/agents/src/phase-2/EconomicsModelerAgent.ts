@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type { AgentInput, Concept, MarketOpportunity } from '@company-builder/types';
+import { EconomicsModelerInputSchema, EconomicsModelerOutputSchema } from '../schemas';
 
 interface EconomicsModelerContext {
   conceptId: string;
@@ -36,6 +38,14 @@ interface EconomicsModelerOutput {
 }
 
 export class EconomicsModelerAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return EconomicsModelerInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return EconomicsModelerOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'validations';
   }
@@ -43,7 +53,7 @@ export class EconomicsModelerAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const context = input.context as unknown as EconomicsModelerContext;
+    const context = EconomicsModelerInputSchema.parse(input.context);
     const { concept, opportunity } = context;
 
     const systemPrompt = `You are the Economics Modeler agent for the Company Builder platform — the financial modeling engine of Phase 2 Validation.
@@ -183,7 +193,7 @@ Build a defensible unit economics model grounded in observable benchmarks. Estim
   }
 
   protected async persistOutput(output: unknown, input: AgentInput): Promise<void> {
-    const context = input.context as unknown as EconomicsModelerContext;
+    const context = EconomicsModelerInputSchema.parse(input.context);
     const { conceptId } = context;
     const result = output as EconomicsModelerOutput;
 

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { PipelineOrchestratorService } from '@company-builder/agents';
-import { GateEvaluator, TaskDispatcher, WatchdogTimer } from '@company-builder/core';
+import { GateEvaluator, TaskDispatcher, WatchdogTimer, logger } from '@company-builder/core';
+
+const log = logger.child({ service: 'api', route: 'cron/orchestrator-tick' });
 
 export const maxDuration = 60;
 
@@ -54,22 +56,36 @@ export async function GET(request: NextRequest) {
 
   const startedAt = Date.now();
 
+  log.info('Tick started');
+
   try {
     const result = await orchestrator.tick();
+
+    const durationMs = Date.now() - startedAt;
+    log.info('Tick completed', {
+      durationMs,
+      processed: result.processed,
+      errorCount: result.errors.length,
+    });
 
     return NextResponse.json({
       success: true,
       timestamp: new Date().toISOString(),
-      duration_ms: Date.now() - startedAt,
+      duration_ms: durationMs,
       ...result,
     });
   } catch (error) {
-    console.error('[cron/orchestrator-tick] Tick failed:', error);
+    const durationMs = Date.now() - startedAt;
+    log.error('Tick failed', {
+      durationMs,
+      error: error instanceof Error ? error.message : String(error),
+      stack: error instanceof Error ? error.stack : undefined,
+    });
     return NextResponse.json(
       {
         success: false,
         error: String(error),
-        duration_ms: Date.now() - startedAt,
+        duration_ms: durationMs,
       },
       { status: 500 },
     );

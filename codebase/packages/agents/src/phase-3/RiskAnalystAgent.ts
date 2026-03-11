@@ -1,7 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type { AgentInput } from '@company-builder/types';
 import type { Concept } from '@company-builder/types';
+import { RiskAnalystInputSchema, RiskAnalystOutputSchema } from '../schemas';
 
 // ---------------------------------------------------------------------------
 // Input context shape
@@ -39,6 +41,14 @@ interface RiskAnalystLLMResponse {
 // ---------------------------------------------------------------------------
 
 export class RiskAnalystAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return RiskAnalystInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return RiskAnalystOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'blueprints';
   }
@@ -46,7 +56,7 @@ export class RiskAnalystAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const ctx = input.context as unknown as RiskAnalystContext;
+    const ctx = RiskAnalystInputSchema.parse(input.context);
     const { concept, feasibilityAssessment, competitiveAnalysis } = ctx;
 
     const systemPrompt = `You are the Risk Analyst (Phase 3, Step 3.4) for the Company Builder platform.
@@ -211,7 +221,7 @@ Identify all meaningful risks. Include at least 8 risks covering at least 4 cate
     output: unknown,
     input: AgentInput,
   ): Promise<void> {
-    const ctx = input.context as unknown as RiskAnalystContext;
+    const ctx = RiskAnalystInputSchema.parse(input.context);
     const { conceptId } = ctx;
     const data = output as RiskAnalystLLMResponse;
 

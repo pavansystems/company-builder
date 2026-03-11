@@ -10,6 +10,7 @@ export {
   AgentError,
   AgentInputError,
   AgentLLMError,
+  AgentOutputValidationError,
   AgentPersistenceError,
   AgentTimeoutError,
 } from './agents/AgentError';
@@ -25,6 +26,8 @@ export {
 export type { PipelineState } from './pipeline/StateMachine';
 export { GateEvaluator } from './pipeline/GateEvaluator';
 export type { GateOutcome, GateEvaluationResult } from './pipeline/GateEvaluator';
+export { PrerequisiteChecker } from './pipeline/PrerequisiteChecker';
+export type { PrerequisiteResult } from './pipeline/PrerequisiteChecker';
 export { TaskDispatcher } from './pipeline/TaskDispatcher';
 export { WatchdogTimer } from './pipeline/WatchdogTimer';
 
@@ -34,7 +37,7 @@ export { AgentRunStore } from './storage/AgentRunStore';
 
 // Utils — logger
 export { logger } from './utils/logger';
-export type { LogLevel, LogEntry } from './utils/logger';
+export type { LogLevel, LogEntry, Logger } from './utils/logger';
 
 // Utils — scoring
 export {

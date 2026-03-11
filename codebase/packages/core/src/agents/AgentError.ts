@@ -36,3 +36,10 @@ export class AgentTimeoutError extends AgentError {
     this.name = 'AgentTimeoutError';
   }
 }
+
+export class AgentOutputValidationError extends AgentError {
+  constructor(msg: string, cause?: unknown) {
+    super(msg, 'OUTPUT_VALIDATION_ERROR', cause);
+    this.name = 'AgentOutputValidationError';
+  }
+}

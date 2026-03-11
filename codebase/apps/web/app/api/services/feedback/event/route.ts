@@ -99,6 +99,7 @@ export async function POST(request: NextRequest) {
     learning_detail: learningDetail ?? null,
     occurred_at: occurredAt ?? now,
     recorded_at: now,
+    account_id: user.id,
   };
 
   const { data: inserted, error: insertError } = await supabase

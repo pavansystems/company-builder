@@ -7,6 +7,7 @@
     "@anthropic-ai/sdk": "^0.30.0",
     "@company-builder/types": "*",
     "@company-builder/core": "*",
-    "@company-builder/database": "*"
+    "@company-builder/database": "*",
+    "zod": "^3.23.0"
   }
 }

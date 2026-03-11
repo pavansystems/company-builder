@@ -1,7 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type { AgentInput, Concept, MarketOpportunity } from '@company-builder/types';
 import type { PainPointEvidence } from '@company-builder/types';
+import { CustomerValidatorInputSchema, CustomerValidatorOutputSchema } from '../schemas';
 
 interface CustomerValidatorContext {
   conceptId: string;
@@ -22,6 +24,14 @@ interface CustomerValidatorOutput {
 }
 
 export class CustomerValidatorAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return CustomerValidatorInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return CustomerValidatorOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'validations';
   }
@@ -29,7 +39,7 @@ export class CustomerValidatorAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const context = input.context as unknown as CustomerValidatorContext;
+    const context = CustomerValidatorInputSchema.parse(input.context);
     const { concept, opportunity } = context;
 
     const systemPrompt = `You are the Customer Validator agent for the Company Builder platform — the demand intelligence engine of Phase 2 Validation.
@@ -136,7 +146,7 @@ Surface 3–5 specific pain point evidence signals grounded in community discuss
   }
 
   protected async persistOutput(output: unknown, input: AgentInput): Promise<void> {
-    const context = input.context as unknown as CustomerValidatorContext;
+    const context = CustomerValidatorInputSchema.parse(input.context);
     const { conceptId } = context;
     const result = output as CustomerValidatorOutput;
 

@@ -1,5 +1,6 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type {
   AgentInput,
   MarketOpportunity,
@@ -8,6 +9,7 @@ import type {
   WatchlistVersionSnapshotItem,
   WatchlistItem,
 } from '@company-builder/types';
+import { WatchlistPublisherInputSchema } from '../schemas';
 
 interface WatchlistPublisherContext {
   opportunities: MarketOpportunity[];
@@ -27,6 +29,10 @@ interface WatchlistPublisherOutput {
 const TOP_N = 10;
 
 export class WatchlistPublisherAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return WatchlistPublisherInputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'watchlist_versions';
   }
@@ -34,7 +40,7 @@ export class WatchlistPublisherAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const context = input.context as unknown as WatchlistPublisherContext;
+    const context = WatchlistPublisherInputSchema.parse(input.context) as unknown as WatchlistPublisherContext;
     const { opportunities, scores } = context;
 
     // Build a lookup for scores by opportunity ID
@@ -152,7 +158,7 @@ Return a JSON object with this structure:
     const rawOutput = output as WatchlistPublisherOutput & { _llmOutput?: WatchlistPublisherLLMResponse };
     const llmOutput = rawOutput._llmOutput;
 
-    const context = input.context as unknown as WatchlistPublisherContext;
+    const context = WatchlistPublisherInputSchema.parse(input.context) as unknown as WatchlistPublisherContext;
     const { opportunities, scores } = context;
 
     // Build score lookup

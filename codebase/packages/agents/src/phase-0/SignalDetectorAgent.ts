@@ -1,6 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type { AgentInput, ContentItem, SignalInsert, SignalType, ImpactRating, SignalEntities } from '@company-builder/types';
+import { SignalDetectorInputSchema, SignalDetectorOutputSchema } from '../schemas';
 
 interface SignalDetectorContext {
   contentItems: ContentItem[];
@@ -34,6 +36,14 @@ const VALID_SIGNAL_TYPES = new Set<SignalType>([
 const VALID_IMPACT_RATINGS = new Set<ImpactRating>(['low', 'medium', 'high', 'critical']);
 
 export class SignalDetectorAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return SignalDetectorInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return SignalDetectorOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'signals';
   }
@@ -41,7 +51,7 @@ export class SignalDetectorAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const context = input.context as unknown as SignalDetectorContext;
+    const context = SignalDetectorInputSchema.parse(input.context);
     const { contentItems } = context;
 
     const systemPrompt = `You are the Signal Detector agent for the Company Builder platform's Phase 0 Discovery pipeline.

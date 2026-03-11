@@ -1,7 +1,9 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { Agent } from '@company-builder/core';
+import type { z } from 'zod';
 import type { AgentInput, Concept, MarketOpportunity } from '@company-builder/types';
 import type { ValidationVerdict, ValidationRisk, Validation } from '@company-builder/types';
+import { ValidationSynthesizerInputSchema, ValidationSynthesizerOutputSchema } from '../schemas';
 
 interface ValidationSynthesizerContext {
   conceptId: string;
@@ -20,6 +22,14 @@ interface ValidationSynthesizerOutput {
 }
 
 export class ValidationSynthesizerAgent extends Agent {
+  protected getInputSchema(): z.ZodType<unknown> {
+    return ValidationSynthesizerInputSchema;
+  }
+
+  protected getOutputSchema(): z.ZodType<unknown> {
+    return ValidationSynthesizerOutputSchema;
+  }
+
   protected getOutputTableName(): string {
     return 'validations';
   }
@@ -27,7 +37,7 @@ export class ValidationSynthesizerAgent extends Agent {
   protected async buildPrompts(
     input: AgentInput,
   ): Promise<{ systemPrompt: string; userMessage: string }> {
-    const context = input.context as unknown as ValidationSynthesizerContext;
+    const context = ValidationSynthesizerInputSchema.parse(input.context);
     const { conceptId, concept, opportunity } = context;
 
     // Fetch all prior validation phases for this concept from Supabase
@@ -202,7 +212,7 @@ Synthesize these five validation analyses into a single investment-grade verdict
   }
 
   protected async persistOutput(output: unknown, input: AgentInput): Promise<void> {
-    const context = input.context as unknown as ValidationSynthesizerContext;
+    const context = ValidationSynthesizerInputSchema.parse(input.context);
     const { conceptId } = context;
     const result = output as ValidationSynthesizerOutput;
 
