@@ -104,7 +104,7 @@ Your role is to simulate the scanning and normalization of content from technolo
 - Generate a realistic content_hash (use format: sha256-like hex string, 64 chars)
 - published_at should be within the last 7 days
 - body should be 200-800 characters of realistic content
-- Generate 3-8 content items per source, proportional to expected source volume
+- Generate 2-4 content items per source, proportional to expected source volume
 - Only generate items with genuine signal value for startup opportunity detection
 - is_duplicate should be false for all generated items (dedup is a real-system concern)
 
@@ -126,7 +126,7 @@ Respond with ONLY valid JSON. Do not include markdown code blocks, explanatory t
 SOURCES TO SCAN:
 ${sourceDescriptions}
 
-For each source, generate between 3 and 8 content items. Each item must be structured as a ContentItem.
+For each source, generate between 2 and 4 content items. Each item must be structured as a ContentItem.
 
 Return a JSON object with this structure:
 {
