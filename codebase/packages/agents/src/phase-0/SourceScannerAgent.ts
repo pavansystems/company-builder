@@ -175,7 +175,7 @@ Return a JSON object with this structure:
     try {
       parsed = JSON.parse(cleaned) as SourceScannerLLMResponse;
     } catch {
-      throw new Error(`SourceScannerAgent: Failed to parse LLM response as JSON. Raw: ${rawText.slice(0, 200)}`);
+      throw new Error(`SourceScannerAgent: Failed to parse LLM response as JSON. stop_reason=${response.stop_reason} rawLen=${rawText.length} cleanedLen=${cleaned.length} Raw: ${rawText.slice(0, 200)}`);
     }
 
     if (!Array.isArray(parsed.items)) {
