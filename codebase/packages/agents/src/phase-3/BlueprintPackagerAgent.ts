@@ -337,8 +337,8 @@ Write a compelling, specific, data-driven executive summary that makes an invest
     const block = response.content[0];
     const rawText = block?.type === 'text' ? block.text : '';
     const cleaned = rawText
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/\s*```\s*$/, '')
+      .replace(/^[\s\S]*?```(?:json)?\s*\n?/i, '')
+      .replace(/\s*```[\s\S]*$/, '')
       .trim();
 
     let parsed: BlueprintPackagerLLMResponse;

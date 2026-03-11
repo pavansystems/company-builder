@@ -192,8 +192,8 @@ Design a comprehensive, operationally realistic architecture that makes this an 
     const block = response.content[0];
     const rawText = block?.type === 'text' ? block.text : '';
     const cleaned = rawText
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/\s*```\s*$/, '')
+      .replace(/^[\s\S]*?```(?:json)?\s*\n?/i, '')
+      .replace(/\s*```[\s\S]*$/, '')
       .trim();
 
     let parsed: AgentArchitectLLMResponse;

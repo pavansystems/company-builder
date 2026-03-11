@@ -167,8 +167,8 @@ Return a JSON object with this structure:
 
     // Strip markdown code fences if present despite instructions
     const cleaned = rawText
-      .replace(/^```(?:json)?\s*/i, '')
-      .replace(/\s*```\s*$/, '')
+      .replace(/^[\s\S]*?```(?:json)?\s*\n?/i, '')
+      .replace(/\s*```[\s\S]*$/, '')
       .trim();
 
     let parsed: SourceScannerLLMResponse;

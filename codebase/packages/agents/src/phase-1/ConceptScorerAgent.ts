@@ -188,8 +188,8 @@ Evaluate each concept rigorously on all five dimensions. Be specific in your rat
     const block = response.content[0];
     const rawText = block?.type === 'text' ? block.text : '';
     const cleaned = rawText
-      .replace(/^```json\n?/, '')
-      .replace(/\n?```$/, '')
+      .replace(/^[\s\S]*?```(?:json)?\s*\n?/i, '')
+      .replace(/\s*```[\s\S]*$/, '')
       .trim();
 
     let parsed: ConceptScorerLLMResponse;

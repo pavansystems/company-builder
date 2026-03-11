@@ -122,8 +122,8 @@ Identify 3–6 key competitors (direct and indirect), map the specific vulnerabi
     const block = response.content[0];
     const rawText = block?.type === 'text' ? block.text : '';
     const cleaned = rawText
-      .replace(/^```json\n?/, '')
-      .replace(/\n?```$/, '')
+      .replace(/^[\s\S]*?```(?:json)?\s*\n?/i, '')
+      .replace(/\s*```[\s\S]*$/, '')
       .trim();
 
     let parsed: CompetitiveAnalystOutput;

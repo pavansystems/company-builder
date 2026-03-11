@@ -124,8 +124,8 @@ Produce a comprehensive pain point catalog with 5–8 distinct, evidence-backed 
     const block = response.content[0];
     const rawText = block?.type === 'text' ? block.text : '';
     const cleaned = rawText
-      .replace(/^```json\n?/, '')
-      .replace(/\n?```$/, '')
+      .replace(/^[\s\S]*?```(?:json)?\s*\n?/i, '')
+      .replace(/\s*```[\s\S]*$/, '')
       .trim();
 
     let parsed: PainExtractorOutput;
