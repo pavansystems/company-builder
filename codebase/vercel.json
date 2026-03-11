@@ -1,0 +1,105 @@
+{
+  "crons": [
+    {
+      "path": "/api/cron/orchestrator-tick",
+      "schedule": "* * * * *"
+    },
+    {
+      "path": "/api/cron/feedback-loop",
+      "schedule": "0 0 * * 0"
+    },
+    {
+      "path": "/api/cron/phase-0-scan",
+      "schedule": "0 * * * *"
+    }
+  ],
+  "functions": {
+    "app/api/agents/source-scanner/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/signal-detector/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/market-classifier/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/opportunity-ranker/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/watchlist-publisher/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/landscape-analyst/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/pain-extractor/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/concept-generator/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/concept-scorer/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/concept-selector/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/market-sizer/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/competitive-analyst/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/customer-validator/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/feasibility-assessor/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/economics-modeler/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/validation-synthesizer/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/business-designer/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/agent-architect/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/gtm-strategist/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/risk-analyst/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/resource-planner/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/agents/blueprint-packager/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/cron/phase-0-scan/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/cron/feedback-loop/route.ts": {
+      "maxDuration": 300
+    },
+    "app/api/cron/orchestrator-tick/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/services/orchestrator/advance/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/services/orchestrator/callback/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/services/orchestrator/gate/route.ts": {
+      "maxDuration": 60
+    },
+    "app/api/services/orchestrator/status/route.ts": {
+      "maxDuration": 60
+    }
+  }
+}
