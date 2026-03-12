@@ -109,7 +109,7 @@ export function ActiveItemsList({ items }: ActiveItemsListProps) {
 
   const handleRowClick = (row: DisplayItem) => {
     const id = row.market_opportunity_id ?? row.concept_id ?? row.id;
-    router.push(`/pipeline/${id}`);
+    router.push(`/review/${row.id}`);
   };
 
   return (
