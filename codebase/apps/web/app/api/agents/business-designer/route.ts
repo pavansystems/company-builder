@@ -41,7 +41,6 @@ export async function POST(request: NextRequest) {
     anthropicApiKey: process.env.ANTHROPIC_API_KEY!,
     modelId: 'claude-sonnet-4-6',
     maxTokens: 16384,
-    maxTokens: 8192,
   });
 
   try {
