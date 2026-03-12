@@ -72,79 +72,68 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // Build the agent input for the source scanner
-  const agentInput = {
-    pipeline_item_id: null,
-    context: { sources: activeSources },
-    instructions:
-      'Scan all provided active sources and generate normalized content items for signal detection.',
-  };
-
-  // Call the source-scanner API route (allows cron auth bypass via same CRON_SECRET)
+  // Process sources in batches of 3 to stay within function timeout
+  const BATCH_SIZE = 3;
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? `https://${request.headers.get('host')}`;
   const scannerUrl = `${baseUrl}/api/agents/source-scanner`;
-
-  let scanResult: Record<string, unknown>;
-  try {
-    const response = await fetch(scannerUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${cronSecret}`,
-      },
-      body: JSON.stringify(agentInput),
-    });
-
-    if (!response.ok) {
-      const errorText = await response.text();
-      throw new Error(`Source scanner responded with ${response.status}: ${errorText}`);
-    }
-
-    scanResult = (await response.json()) as Record<string, unknown>;
-  } catch (error) {
-    log.error('Source scanner call failed', {
-      error: error instanceof Error ? error.message : String(error),
-      sourceCount: activeSources.length,
-    });
-    return NextResponse.json(
-      { error: `Source scanner failed: ${String(error)}` },
-      { status: 500 },
-    );
-  }
-
-  // Update last_scanned_at for all sources that were scanned
   const scanTimestamp = new Date().toISOString();
-  const sourceIds = activeSources.map((s) => s.id);
 
-  const { error: updateError } = await supabase
-    .from('sources')
-    .update({ last_scanned_at: scanTimestamp })
-    .in('id', sourceIds);
+  const results: Array<{ batch: number; success: boolean; sources: string[]; error?: string }> = [];
+  let totalScanned = 0;
 
-  if (updateError !== null) {
-    // Non-fatal: log but don't fail the response
-    log.warn('Failed to update last_scanned_at', { error: updateError.message });
+  for (let i = 0; i < activeSources.length; i += BATCH_SIZE) {
+    const batch = activeSources.slice(i, i + BATCH_SIZE);
+    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+
+    log.info(`Scanning batch ${batchNum}`, { sources: batch.map((s) => s.name) });
+
+    const agentInput = {
+      pipeline_item_id: null,
+      context: { sources: batch },
+      instructions:
+        'Scan all provided active sources and generate normalized content items for signal detection.',
+    };
+
+    try {
+      const response = await fetch(scannerUrl, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${cronSecret}`,
+        },
+        body: JSON.stringify(agentInput),
+      });
+
+      if (!response.ok) {
+        const errorText = await response.text();
+        throw new Error(`Source scanner responded with ${response.status}: ${errorText.slice(0, 200)}`);
+      }
+
+      await response.json();
+
+      // Update last_scanned_at for this batch
+      const batchIds = batch.map((s) => s.id);
+      await supabase
+        .from('sources')
+        .update({ last_scanned_at: scanTimestamp })
+        .in('id', batchIds);
+
+      results.push({ batch: batchNum, success: true, sources: batch.map((s) => s.name) });
+      totalScanned += batch.length;
+    } catch (error) {
+      const msg = error instanceof Error ? error.message : String(error);
+      log.error(`Batch ${batchNum} failed`, { error: msg });
+      results.push({ batch: batchNum, success: false, sources: batch.map((s) => s.name), error: msg.slice(0, 200) });
+    }
   }
 
-  log.info('Phase 0 scan completed', {
-    sourcesScanned: activeSources.length,
-    scannerSuccess: scanResult.success,
-    tokensUsed: scanResult.tokens_used,
-    costUsd: scanResult.cost_usd,
-    durationMs: scanResult.duration_ms,
-  });
+  log.info('Phase 0 scan completed', { totalScanned, totalSources: activeSources.length });
 
   return NextResponse.json({
-    success: true,
-    message: 'Phase 0 scan triggered successfully.',
-    sources_scanned: activeSources.length,
-    source_names: activeSources.map((s) => s.name),
+    success: totalScanned > 0,
+    message: `Phase 0 scan completed. ${totalScanned}/${activeSources.length} sources scanned.`,
+    sources_scanned: totalScanned,
     scan_timestamp: scanTimestamp,
-    scanner_result: {
-      tokens_used: scanResult.tokens_used,
-      cost_usd: scanResult.cost_usd,
-      duration_ms: scanResult.duration_ms,
-      success: scanResult.success,
-    },
+    batch_results: results,
   });
 }
