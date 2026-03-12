@@ -146,7 +146,7 @@ Return a JSON object with this structure:
         published_at: new Date().toISOString(),
         snapshot_data: [],
         total_opportunities: 0,
-        created_by: 'watchlist-publisher-agent',
+        created_by: null,
       },
       items: [],
       // Attach LLM output as metadata for use in persistOutput
@@ -213,7 +213,7 @@ Return a JSON object with this structure:
       published_at: new Date().toISOString(),
       snapshot_data: snapshotItems,
       total_opportunities: opportunities.length,
-      created_by: 'watchlist-publisher-agent',
+      created_by: null,
     };
 
     const { data: insertedVersion, error: versionError } = await this.supabase
@@ -230,19 +230,7 @@ Return a JSON object with this structure:
 
     const versionId = (insertedVersion as { id: string }).id;
 
-    // Step 2: Update market_opportunities with ranked_at and store summary as metadata
-    // We also log the editorial summary by updating the version record
-    const { error: summaryError } = await this.supabase
-      .from('watchlist_versions')
-      .update({ created_by: `watchlist-publisher-agent | ${summaryText.slice(0, 500)}` })
-      .eq('id', versionId);
-
-    if (summaryError !== null) {
-      // Non-fatal: log but don't throw
-      console.warn('WatchlistPublisherAgent: Failed to store summary in version record', summaryError.message);
-    }
-
-    // Step 3: Mark each ranked opportunity with ranked_at timestamp
+    // Step 2: Mark each ranked opportunity with ranked_at timestamp
     const rankedAt = new Date().toISOString();
     const rankedIds = top.map(({ opp }) => opp.id);
 
