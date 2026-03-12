@@ -347,41 +347,18 @@ export class PipelineOrchestratorService {
         .eq('id', item.id);
 
       // Enrich context with data required by specific agents
-      let enrichedContext: Record<string, unknown> = {};
+      const enrichedContext = await this.enrichContextForStep(targetStep, phase, item.id);
 
-      if (targetStep === 'signal-detector') {
-        // Fetch content_items that have not yet been processed into signals
-        const { data: processedIds } = await this.supabase
-          .from('signals')
-          .select('content_item_id');
-
-        const processedSet = new Set(
-          (processedIds ?? []).map((r: { content_item_id: string }) => r.content_item_id),
-        );
-
-        const { data: allItems } = await this.supabase
-          .from('content_items')
-          .select('*')
-          .eq('is_archived', false)
-          .order('published_at', { ascending: false });
-
-        const unprocessed = (allItems ?? []).filter(
-          (ci: { id: string }) => !processedSet.has(ci.id),
-        );
-
-        if (unprocessed.length === 0) {
-          this.log.info('No unprocessed content items — skipping signal-detector', {
-            itemId: item.id,
-          });
-          // Mark step as complete so pipeline can advance
-          await this.supabase
-            .from('pipeline_items')
-            .update({ status: 'pending', current_step: this.getNextStep(targetStep, phase) ?? targetStep })
-            .eq('id', item.id);
-          return;
-        }
-
-        enrichedContext = { contentItems: unprocessed };
+      if (enrichedContext === null) {
+        this.log.info('No data to process — skipping step', {
+          itemId: item.id,
+          step: targetStep,
+        });
+        await this.supabase
+          .from('pipeline_items')
+          .update({ status: 'pending', current_step: this.getNextStep(targetStep, phase) ?? targetStep })
+          .eq('id', item.id);
+        return;
       }
 
       await this.dispatcher.dispatch(targetStep, {
@@ -732,6 +709,77 @@ export class PipelineOrchestratorService {
     }
 
     return data !== null;
+  }
+
+  /**
+   * Fetches the data each Phase 0 agent needs and returns it as enriched context.
+   * Returns null when there is nothing to process (caller should skip the step).
+   */
+  private async enrichContextForStep(
+    step: string,
+    _phase: string,
+    _itemId: string,
+  ): Promise<Record<string, unknown> | null> {
+    if (step === 'signal-detector') {
+      const { data: processedIds } = await this.supabase
+        .from('signals')
+        .select('content_item_id');
+
+      const processedSet = new Set(
+        (processedIds ?? []).map((r: { content_item_id: string }) => r.content_item_id),
+      );
+
+      const { data: allItems } = await this.supabase
+        .from('content_items')
+        .select('*')
+        .eq('is_archived', false)
+        .order('published_at', { ascending: false });
+
+      const unprocessed = (allItems ?? []).filter(
+        (ci: { id: string }) => !processedSet.has(ci.id),
+      );
+
+      return unprocessed.length === 0 ? null : { contentItems: unprocessed };
+    }
+
+    if (step === 'market-classifier') {
+      const { data: signals } = await this.supabase
+        .from('signals')
+        .select('*')
+        .eq('is_archived', false)
+        .order('detected_at', { ascending: false });
+
+      return (signals ?? []).length === 0 ? null : { signals };
+    }
+
+    if (step === 'opportunity-ranker') {
+      const { data: opportunities } = await this.supabase
+        .from('market_opportunities')
+        .select('*')
+        .eq('is_active', true)
+        .order('created_at', { ascending: false });
+
+      return (opportunities ?? []).length === 0 ? null : { opportunities };
+    }
+
+    if (step === 'watchlist-publisher') {
+      const { data: opportunities } = await this.supabase
+        .from('market_opportunities')
+        .select('*')
+        .eq('is_active', true);
+
+      const { data: scores } = await this.supabase
+        .from('opportunity_scores')
+        .select('*')
+        .order('scored_at', { ascending: false });
+
+      return (opportunities ?? []).length === 0
+        ? null
+        : { opportunities: opportunities ?? [], scores: scores ?? [] };
+    }
+
+    // Other agents don't need enrichment
+    return {};
   }
 
   /**
