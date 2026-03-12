@@ -41,6 +41,8 @@ export async function POST(request: NextRequest) {
     supabaseUrl: process.env.NEXT_PUBLIC_SUPABASE_URL!,
     supabaseKey: process.env.SUPABASE_SERVICE_ROLE_KEY!,
     anthropicApiKey: process.env.ANTHROPIC_API_KEY!,
+    modelId: 'claude-sonnet-4-6',
+    maxTokens: 16384,
   });
 
   try {
