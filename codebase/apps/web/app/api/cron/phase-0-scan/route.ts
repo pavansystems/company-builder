@@ -44,12 +44,13 @@ export async function GET(request: NextRequest) {
     auth: { persistSession: false },
   });
 
-  // Fetch all active sources
+  // Fetch the 3 least-recently-scanned active sources (rotate through all sources across cron runs)
   const { data: sources, error: sourcesError } = await supabase
     .from('sources')
     .select('*')
     .eq('is_active', true)
-    .order('last_scanned_at', { ascending: true, nullsFirst: true });
+    .order('last_scanned_at', { ascending: true, nullsFirst: true })
+    .limit(3);
 
   if (sourcesError !== null) {
     log.error('Failed to fetch active sources', { error: sourcesError.message });
@@ -72,68 +73,67 @@ export async function GET(request: NextRequest) {
     });
   }
 
-  // Process sources in batches of 3 to stay within function timeout
-  const BATCH_SIZE = 3;
   const baseUrl = process.env.NEXT_PUBLIC_APP_URL ?? `https://${request.headers.get('host')}`;
   const scannerUrl = `${baseUrl}/api/agents/source-scanner`;
-  const scanTimestamp = new Date().toISOString();
 
-  const results: Array<{ batch: number; success: boolean; sources: string[]; error?: string }> = [];
-  let totalScanned = 0;
+  const agentInput = {
+    pipeline_item_id: null,
+    context: { sources: activeSources },
+    instructions:
+      'Scan all provided active sources and generate normalized content items for signal detection.',
+  };
 
-  for (let i = 0; i < activeSources.length; i += BATCH_SIZE) {
-    const batch = activeSources.slice(i, i + BATCH_SIZE);
-    const batchNum = Math.floor(i / BATCH_SIZE) + 1;
+  let scanResult: Record<string, unknown>;
+  try {
+    const response = await fetch(scannerUrl, {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${cronSecret}`,
+      },
+      body: JSON.stringify(agentInput),
+    });
 
-    log.info(`Scanning batch ${batchNum}`, { sources: batch.map((s) => s.name) });
-
-    const agentInput = {
-      pipeline_item_id: null,
-      context: { sources: batch },
-      instructions:
-        'Scan all provided active sources and generate normalized content items for signal detection.',
-    };
-
-    try {
-      const response = await fetch(scannerUrl, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${cronSecret}`,
-        },
-        body: JSON.stringify(agentInput),
-      });
-
-      if (!response.ok) {
-        const errorText = await response.text();
-        throw new Error(`Source scanner responded with ${response.status}: ${errorText.slice(0, 200)}`);
-      }
-
-      await response.json();
-
-      // Update last_scanned_at for this batch
-      const batchIds = batch.map((s) => s.id);
-      await supabase
-        .from('sources')
-        .update({ last_scanned_at: scanTimestamp })
-        .in('id', batchIds);
-
-      results.push({ batch: batchNum, success: true, sources: batch.map((s) => s.name) });
-      totalScanned += batch.length;
-    } catch (error) {
-      const msg = error instanceof Error ? error.message : String(error);
-      log.error(`Batch ${batchNum} failed`, { error: msg });
-      results.push({ batch: batchNum, success: false, sources: batch.map((s) => s.name), error: msg.slice(0, 200) });
+    if (!response.ok) {
+      const errorText = await response.text();
+      throw new Error(`Source scanner responded with ${response.status}: ${errorText.slice(0, 300)}`);
     }
+
+    scanResult = (await response.json()) as Record<string, unknown>;
+  } catch (error) {
+    log.error('Source scanner call failed', {
+      error: error instanceof Error ? error.message : String(error),
+      sourceCount: activeSources.length,
+    });
+    return NextResponse.json(
+      { error: `Source scanner failed: ${String(error).slice(0, 300)}` },
+      { status: 500 },
+    );
   }
 
-  log.info('Phase 0 scan completed', { totalScanned, totalSources: activeSources.length });
+  // Update last_scanned_at for scanned sources
+  const scanTimestamp = new Date().toISOString();
+  const sourceIds = activeSources.map((s) => s.id);
+
+  const { error: updateError } = await supabase
+    .from('sources')
+    .update({ last_scanned_at: scanTimestamp })
+    .in('id', sourceIds);
+
+  if (updateError !== null) {
+    log.warn('Failed to update last_scanned_at', { error: updateError.message });
+  }
+
+  log.info('Phase 0 scan completed', {
+    sourcesScanned: activeSources.length,
+    scannerSuccess: scanResult.success,
+  });
 
   return NextResponse.json({
-    success: totalScanned > 0,
-    message: `Phase 0 scan completed. ${totalScanned}/${activeSources.length} sources scanned.`,
-    sources_scanned: totalScanned,
+    success: true,
+    message: `Phase 0 scan completed. ${activeSources.length} sources scanned.`,
+    sources_scanned: activeSources.length,
+    source_names: activeSources.map((s) => s.name),
     scan_timestamp: scanTimestamp,
-    batch_results: results,
   });
 }
