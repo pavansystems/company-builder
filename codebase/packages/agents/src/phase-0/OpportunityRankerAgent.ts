@@ -311,16 +311,20 @@ Return a JSON object with this structure:
         .filter(Boolean)
         .join('\n\n');
 
+      // DB columns are numeric(3,2) so all scores must be 0.00–9.99.
+      // Convert 0-100 integer scores to 0-1.0 scale for storage.
+      const toDecimal = (v: number) => Math.round((v / 100) * 100) / 100; // 0–1.00
+
       return {
         market_opportunity_id: raw.market_opportunity_id,
         scored_at: now,
         scored_by: 'opportunity-ranker-agent',
-        market_size_score: marketSizeScore,
-        signal_convergence_score: signalConvergenceScore,
-        agent_readiness_score: agentReadinessScore,
-        competitive_density_score: competitiveDensityScore,
-        timing_confidence_score: timingConfidenceScore,
-        composite_score: Math.round(compositeScore * 10) / 10, // round to 1 decimal
+        market_size_score: toDecimal(marketSizeScore),
+        signal_convergence_score: toDecimal(signalConvergenceScore),
+        agent_readiness_score: toDecimal(agentReadinessScore),
+        competitive_density_score: toDecimal(competitiveDensityScore),
+        timing_confidence_score: toDecimal(timingConfidenceScore),
+        composite_score: toDecimal(compositeScore),
         weight_market_size: SCORING_WEIGHTS.market_size ?? 0,
         weight_signal_convergence: SCORING_WEIGHTS.signal_convergence ?? 0,
         weight_agent_readiness: SCORING_WEIGHTS.agent_readiness ?? 0,
