@@ -32,6 +32,8 @@ export abstract class Agent {
   protected readonly supabase: SupabaseClient;
   protected readonly claude: Anthropic;
   protected readonly log: Logger;
+  /** The account_id for the current run, set from AgentInput during run(). */
+  protected accountId: string = '00000000-0000-0000-0000-000000000000';
 
   constructor(config: AgentConstructorConfig) {
     this.config = {
@@ -107,9 +109,13 @@ export abstract class Agent {
     const startTime = Date.now();
     const runId = crypto.randomUUID();
 
+    // Store account_id for use in all DB operations
+    this.accountId = input.account_id;
+
     this.log.info('Agent run started', {
       runId,
       pipelineItemId: input.pipeline_item_id,
+      accountId: this.accountId,
     });
 
     // Stage 1: Create agent_run record
@@ -259,6 +265,7 @@ export abstract class Agent {
 
     const { error } = await this.supabase.from(tableName).upsert(
       {
+        account_id: this.accountId,
         pipeline_item_id: input.pipeline_item_id,
         output_data: output,
         created_at: new Date().toISOString(),
@@ -340,6 +347,7 @@ export abstract class Agent {
   private async createAgentRun(runId: string, input: AgentInput): Promise<void> {
     const { error } = await this.supabase.from('agent_runs').insert({
       id: runId,
+      account_id: this.accountId,
       agent_name: this.config.name,
       pipeline_item_id: input.pipeline_item_id,
       input_data: { context: input.context, instructions: input.instructions },

@@ -280,6 +280,7 @@ Design a lean, realistic resource plan that gives this startup the best chance o
       .from('blueprints')
       .upsert(
         {
+          account_id: this.accountId,
           concept_id: conceptId,
           upfront_build_cost: data.upfrontBuildCost,
           hiring_plan: hiringPlanForDb,

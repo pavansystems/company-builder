@@ -78,6 +78,7 @@ export async function GET(request: NextRequest) {
 
   const agentInput = {
     pipeline_item_id: null,
+    account_id: activeSources[0]!.account_id,
     context: { sources: activeSources },
     instructions:
       'Scan all provided active sources and generate normalized content items for signal detection.',

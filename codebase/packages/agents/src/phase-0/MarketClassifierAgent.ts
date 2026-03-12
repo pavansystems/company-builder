@@ -280,7 +280,9 @@ If signals don't map to any actionable market opportunity, return: {"opportuniti
       return;
     }
 
-    const { error } = await this.supabase.from(this.getOutputTableName()).insert(opportunities);
+    const { error } = await this.supabase.from(this.getOutputTableName()).insert(
+      opportunities.map((opp) => ({ ...opp, account_id: this.accountId })),
+    );
 
     if (error !== null) {
       throw new Error(`MarketClassifierAgent: Failed to persist market opportunities: ${error.message}`);

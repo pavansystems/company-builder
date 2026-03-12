@@ -271,6 +271,7 @@ Design a comprehensive, operationally realistic architecture that makes this an 
       .from('blueprints')
       .upsert(
         {
+          account_id: this.accountId,
           concept_id: conceptId,
           agent_roles: agentRolesForDb,
           human_roles: humanRolesForDb,

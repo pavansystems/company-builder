@@ -217,6 +217,7 @@ Synthesize these five validation analyses into a single investment-grade verdict
     const result = output as ValidationSynthesizerOutput;
 
     const { error } = await this.supabase.from('validations').insert({
+      account_id: this.accountId,
       concept_id: conceptId,
       validation_phase: 'synthesis',
       verdict: result.verdict,

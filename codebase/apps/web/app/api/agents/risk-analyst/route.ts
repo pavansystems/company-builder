@@ -14,6 +14,7 @@ export async function POST(request: NextRequest) {
     cronSecret.length > 0 &&
     authHeader === `Bearer ${cronSecret}`;
 
+  let userId: string | undefined;
   if (!isCronRequest) {
     const supabase = await createServerSupabaseClient();
     const {
@@ -23,6 +24,7 @@ export async function POST(request: NextRequest) {
     if (!user) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
+    userId = user.id;
   }
 
   let input: AgentInput;
@@ -30,6 +32,11 @@ export async function POST(request: NextRequest) {
     input = (await request.json()) as AgentInput;
   } catch {
     return NextResponse.json({ error: 'Invalid JSON body' }, { status: 400 });
+  }
+
+  // For user-initiated requests, override account_id with the authenticated user's ID
+  if (userId) {
+    input.account_id = userId;
   }
 
   const agent = new RiskAnalystAgent({

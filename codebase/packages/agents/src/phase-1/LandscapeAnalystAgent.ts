@@ -149,6 +149,7 @@ Deliver a comprehensive landscape analysis covering: 3–6 incumbents with their
       output: output,
       validated_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      account_id: this.accountId,
     });
 
     if (error !== null) {

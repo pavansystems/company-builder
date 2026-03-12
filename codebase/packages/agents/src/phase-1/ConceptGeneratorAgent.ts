@@ -179,6 +179,7 @@ Generate 5–8 startup concepts that are genuinely different from each other —
       source_phase: 'generated' as const,
       is_active: true,
       selected_for_validation: false,
+      account_id: this.accountId,
     }));
 
     const { error } = await this.supabase.from('concepts').insert(rows);

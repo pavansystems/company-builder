@@ -206,7 +206,9 @@ Return a JSON object with this structure:
       return;
     }
 
-    const { error } = await this.supabase.from(this.getOutputTableName()).insert(items);
+    const { error } = await this.supabase.from(this.getOutputTableName()).insert(
+      items.map((item) => ({ ...item, account_id: this.accountId })),
+    );
 
     if (error !== null) {
       throw new Error(`SourceScannerAgent: Failed to persist content items: ${error.message}`);

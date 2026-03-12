@@ -144,6 +144,7 @@ Identify 3–6 key competitors (direct and indirect), map the specific vulnerabi
     const result = output as CompetitiveAnalystOutput;
 
     const { error } = await this.supabase.from('validations').insert({
+      account_id: this.accountId,
       concept_id: conceptId,
       validation_phase: 'competitive',
       competitors: result.competitors,

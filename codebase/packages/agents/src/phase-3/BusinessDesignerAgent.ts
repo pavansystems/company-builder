@@ -238,6 +238,7 @@ Design a compelling, internally consistent business model grounded in the market
       .from('blueprints')
       .upsert(
         {
+          account_id: this.accountId,
           concept_id: conceptId,
           pricing_tiers: pricingTiersForDb,
           financial_projection: financialProjectionForDb,

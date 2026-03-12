@@ -379,6 +379,7 @@ Write a compelling, specific, data-driven executive summary that makes an invest
       .from('blueprints')
       .upsert(
         {
+          account_id: this.accountId,
           id: blueprintId,
           concept_id: conceptId,
           executive_summary: data.executiveSummary,

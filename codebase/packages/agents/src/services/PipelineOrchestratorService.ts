@@ -363,6 +363,7 @@ export class PipelineOrchestratorService {
 
       await this.dispatcher.dispatch(targetStep, {
         pipeline_item_id: item.id,
+        account_id: item.account_id,
         context: {
           itemId: item.id,
           phase,
@@ -470,6 +471,7 @@ export class PipelineOrchestratorService {
     // Immediately dispatch next agent (no need to wait for next tick)
     await this.dispatcher.dispatch(nextStep, {
       pipeline_item_id: pipelineItemId,
+      account_id: item.account_id,
       context: {
         itemId: pipelineItemId,
         phase,
@@ -549,6 +551,7 @@ export class PipelineOrchestratorService {
 
     // Persist gate decision record
     await this.supabase.from('gate_decisions').insert({
+      account_id: item.account_id,
       pipeline_item_id: item.id,
       gate_phase: currentPhase,
       decision: outcome === 'advance' ? 'pass'

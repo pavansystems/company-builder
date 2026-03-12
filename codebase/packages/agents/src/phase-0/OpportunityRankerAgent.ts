@@ -342,7 +342,9 @@ Return a JSON object with this structure:
       return;
     }
 
-    const { error } = await this.supabase.from(this.getOutputTableName()).insert(scores);
+    const { error } = await this.supabase.from(this.getOutputTableName()).insert(
+      scores.map((score) => ({ ...score, account_id: this.accountId })),
+    );
 
     if (error !== null) {
       throw new Error(`OpportunityRankerAgent: Failed to persist opportunity scores: ${error.message}`);

@@ -244,6 +244,7 @@ Identify all meaningful risks. Include at least 8 risks covering at least 4 cate
       .from('blueprints')
       .upsert(
         {
+          account_id: this.accountId,
           concept_id: conceptId,
           risks: risksForDb,
           updated_at: new Date().toISOString(),

@@ -198,6 +198,7 @@ Build a defensible unit economics model grounded in observable benchmarks. Estim
     const result = output as EconomicsModelerOutput;
 
     const { error } = await this.supabase.from('validations').insert({
+      account_id: this.accountId,
       concept_id: conceptId,
       validation_phase: 'economics',
       cac: result.cac,

@@ -151,6 +151,7 @@ Surface 3–5 specific pain point evidence signals grounded in community discuss
     const result = output as CustomerValidatorOutput;
 
     const { error } = await this.supabase.from('validations').insert({
+      account_id: this.accountId,
       concept_id: conceptId,
       validation_phase: 'customer',
       pain_point_evidence: result.painPointEvidence,

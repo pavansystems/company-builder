@@ -218,7 +218,7 @@ Return a JSON object with this structure:
 
     const { data: insertedVersion, error: versionError } = await this.supabase
       .from('watchlist_versions')
-      .insert(versionInsert)
+      .insert({ ...versionInsert, account_id: this.accountId })
       .select('id')
       .single();
 

@@ -303,6 +303,7 @@ Design a go-to-market strategy that can realistically acquire 100+ customers in 
       .from('blueprints')
       .upsert(
         {
+          account_id: this.accountId,
           concept_id: conceptId,
           gtm_target_segment: data.targetSegment,
           gtm_channels: channelsForDb,

@@ -198,6 +198,7 @@ Apply the selection philosophy: select the strongest concepts that form a divers
       decision_reason: result.selectionRationale,
       pre_decision_data: output as Record<string, unknown>,
       decided_at: new Date().toISOString(),
+      account_id: this.accountId,
     });
 
     if (gateError !== null) {

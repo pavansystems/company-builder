@@ -150,6 +150,7 @@ Produce a comprehensive pain point catalog with 5–8 distinct, evidence-backed 
       output: output,
       validated_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      account_id: this.accountId,
     });
 
     if (error !== null) {

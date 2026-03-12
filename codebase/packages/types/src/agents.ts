@@ -65,6 +65,7 @@ export interface AgentConfig {
 
 export interface AgentInput {
   pipeline_item_id: string | null;
+  account_id: string;
   context: Record<string, unknown>;
   instructions: string;
 }

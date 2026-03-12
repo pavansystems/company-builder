@@ -265,7 +265,9 @@ If no signals meet the confidence threshold, return: {"signals": []}`;
       return;
     }
 
-    const { error } = await this.supabase.from(this.getOutputTableName()).insert(signals);
+    const { error } = await this.supabase.from(this.getOutputTableName()).insert(
+      signals.map((signal) => ({ ...signal, account_id: this.accountId })),
+    );
 
     if (error !== null) {
       throw new Error(`SignalDetectorAgent: Failed to persist signals: ${error.message}`);

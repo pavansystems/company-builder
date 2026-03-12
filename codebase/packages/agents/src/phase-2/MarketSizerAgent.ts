@@ -137,6 +137,7 @@ Produce TAM, SAM, and SOM estimates using both top-down and bottom-up approaches
     const result = output as MarketSizerOutput;
 
     const { error } = await this.supabase.from('validations').insert({
+      account_id: this.accountId,
       concept_id: conceptId,
       validation_phase: 'market_sizing',
       tam_estimate: result.tam,

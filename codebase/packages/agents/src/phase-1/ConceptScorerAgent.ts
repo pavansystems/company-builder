@@ -240,6 +240,7 @@ Evaluate each concept rigorously on all five dimensions. Be specific in your rat
       weight_differentiation: WEIGHTS.differentiation,
       weight_revenue_clarity: WEIGHTS.market_fit,
       reasoning: JSON.stringify(s.scoring_rationale),
+      account_id: this.accountId,
     }));
 
     const { error } = await this.supabase.from('concept_scores').insert(rows);

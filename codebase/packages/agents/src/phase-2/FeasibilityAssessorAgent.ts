@@ -166,6 +166,7 @@ Enumerate every required AI capability with its tier classification, identify te
     const result = output as FeasibilityAssessorOutput;
 
     const { error } = await this.supabase.from('validations').insert({
+      account_id: this.accountId,
       concept_id: conceptId,
       validation_phase: 'feasibility',
       required_ai_capabilities: result.requiredAICapabilities,
