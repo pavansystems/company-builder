@@ -346,6 +346,44 @@ export class PipelineOrchestratorService {
         })
         .eq('id', item.id);
 
+      // Enrich context with data required by specific agents
+      let enrichedContext: Record<string, unknown> = {};
+
+      if (targetStep === 'signal-detector') {
+        // Fetch content_items that have not yet been processed into signals
+        const { data: processedIds } = await this.supabase
+          .from('signals')
+          .select('content_item_id');
+
+        const processedSet = new Set(
+          (processedIds ?? []).map((r: { content_item_id: string }) => r.content_item_id),
+        );
+
+        const { data: allItems } = await this.supabase
+          .from('content_items')
+          .select('*')
+          .eq('is_archived', false)
+          .order('published_at', { ascending: false });
+
+        const unprocessed = (allItems ?? []).filter(
+          (ci: { id: string }) => !processedSet.has(ci.id),
+        );
+
+        if (unprocessed.length === 0) {
+          this.log.info('No unprocessed content items — skipping signal-detector', {
+            itemId: item.id,
+          });
+          // Mark step as complete so pipeline can advance
+          await this.supabase
+            .from('pipeline_items')
+            .update({ status: 'pending', current_step: this.getNextStep(targetStep, phase) ?? targetStep })
+            .eq('id', item.id);
+          return;
+        }
+
+        enrichedContext = { contentItems: unprocessed };
+      }
+
       await this.dispatcher.dispatch(targetStep, {
         pipeline_item_id: item.id,
         context: {
@@ -354,6 +392,7 @@ export class PipelineOrchestratorService {
           step: targetStep,
           marketOpportunityId: item.market_opportunity_id,
           conceptId: item.concept_id,
+          ...enrichedContext,
         },
         instructions: `Execute ${targetStep} for pipeline item ${item.id} in phase ${phase}.`,
       });
