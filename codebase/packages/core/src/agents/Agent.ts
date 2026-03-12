@@ -289,7 +289,7 @@ export abstract class Agent {
     durationMs: number,
   ): Promise<void> {
     const costUsd = estimateCost(this.config.modelId, inputTokens, outputTokens);
-    const durationSeconds = durationMs / 1000;
+    const durationSeconds = Math.round(durationMs / 1000);
 
     const { error } = await this.supabase
       .from('agent_runs')
