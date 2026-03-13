@@ -5,7 +5,7 @@ import { ArrowRight, Zap, Loader2 } from 'lucide-react';
 import type { MarketOpportunity, OpportunityScore, Signal } from '@company-builder/types';
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs';
 import { Button } from '@/components/ui/button';
-import { getScoreBand } from '@/lib/utils/scoreUtils';
+import { getScoreBand, normalizeScore } from '@/lib/utils/scoreUtils';
 import { formatMarketSize } from '@/lib/utils/formatters';
 import { cn } from '@/lib/utils';
 import { RankingBreakdown } from './RankingBreakdown';
@@ -28,7 +28,7 @@ export function OpportunityDetail({ opportunity, score, signals }: OpportunityDe
   const [advancing, setAdvancing] = useState(false);
   const [advanced, setAdvanced] = useState(false);
 
-  const compositeScore = score?.composite_score ?? 0;
+  const compositeScore = normalizeScore(score?.composite_score ?? 0);
   const scoreBand = getScoreBand(compositeScore);
   const scoreColor =
     scoreBand === 'high'

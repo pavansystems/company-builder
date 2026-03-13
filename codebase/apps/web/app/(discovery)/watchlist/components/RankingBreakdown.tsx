@@ -2,7 +2,7 @@
 
 import type { OpportunityScore } from '@company-builder/types';
 import { ScoreRadar } from '@/components/shared/ScoreRadar';
-import { getScoreBand } from '@/lib/utils/scoreUtils';
+import { getScoreBand, normalizeScore } from '@/lib/utils/scoreUtils';
 import { cn } from '@/lib/utils';
 
 interface RankingBreakdownProps {
@@ -61,10 +61,10 @@ function ScoreBar({ score }: { score: number }) {
 export function RankingBreakdown({ score }: RankingBreakdownProps) {
   const radarData = DIMENSIONS.map((d) => ({
     dimension: d.label.split(' ')[0] ?? d.label, // Short label for radar
-    score: Math.round((score[d.key] as number) ?? 0),
+    score: Math.round(normalizeScore((score[d.key] as number) ?? 0)),
   }));
 
-  const compositeScore = score.composite_score ?? 0;
+  const compositeScore = normalizeScore(score.composite_score ?? 0);
   const compositeBand = getScoreBand(compositeScore);
   const compositeColor =
     compositeBand === 'high'
@@ -87,7 +87,7 @@ export function RankingBreakdown({ score }: RankingBreakdownProps) {
           <h4 className="text-sm font-semibold text-slate-700 mb-3">Dimension Breakdown</h4>
           <div className="space-y-3">
             {DIMENSIONS.map((d) => {
-              const dimScore = Math.round((score[d.key] as number) ?? 0);
+              const dimScore = Math.round(normalizeScore((score[d.key] as number) ?? 0));
               const weight = Math.round(((score[d.weightKey] as number) ?? 0) * 100);
               const band = getScoreBand(dimScore);
               const scoreColor =

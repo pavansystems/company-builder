@@ -1,8 +1,18 @@
 import { DEFAULT_THRESHOLDS } from '@/lib/constants/scoring';
 
+/**
+ * Normalize a score to the 0-100 scale.
+ * DB stores scores as 0-1.0; UI expects 0-100.
+ * Scores <= 1.0 are assumed to be on the 0-1 scale and are multiplied by 100.
+ */
+export function normalizeScore(score: number): number {
+  return score <= 1 ? score * 100 : score;
+}
+
 export function getScoreBand(score: number): 'high' | 'medium' | 'low' {
-  if (score >= DEFAULT_THRESHOLDS.high) return 'high';
-  if (score >= DEFAULT_THRESHOLDS.low) return 'medium';
+  const normalized = normalizeScore(score);
+  if (normalized >= DEFAULT_THRESHOLDS.high) return 'high';
+  if (normalized >= DEFAULT_THRESHOLDS.low) return 'medium';
   return 'low';
 }
 
@@ -28,7 +38,7 @@ export function getScoreBorderColor(score: number): string {
 }
 
 export function formatScore(score: number, withTotal = false): string {
-  const rounded = Math.round(score);
+  const rounded = Math.round(normalizeScore(score));
   if (withTotal) return `${rounded}/100`;
   return `${rounded}`;
 }

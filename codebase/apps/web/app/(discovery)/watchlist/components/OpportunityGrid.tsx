@@ -3,6 +3,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { LayoutGrid } from 'lucide-react';
 import type { MarketOpportunity, WatchlistItem } from '@company-builder/types';
+import { normalizeScore } from '@/lib/utils/scoreUtils';
 import { createBrowserSupabaseClient } from '@/lib/supabase/browser';
 import { EmptyState } from '@/components/shared/EmptyState';
 import { OpportunityCard } from './OpportunityCard';
@@ -75,7 +76,7 @@ export function OpportunityGrid({ initialData }: OpportunityGridProps) {
   const displayItems = items
     .filter((item) => {
       if (!filteredIds.has(item.opportunity.id)) return false;
-      if (minScore > 0 && (item.score?.composite_score ?? 0) < minScore) return false;
+      if (minScore > 0 && normalizeScore(item.score?.composite_score ?? 0) < minScore) return false;
       return true;
     })
     .sort((a, b) => a.rank - b.rank);

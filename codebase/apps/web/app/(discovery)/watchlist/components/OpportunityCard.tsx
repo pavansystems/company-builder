@@ -12,7 +12,7 @@ import {
   ChevronRight,
 } from 'lucide-react';
 import type { MarketOpportunity, OpportunityScore } from '@company-builder/types';
-import { getScoreBand } from '@/lib/utils/scoreUtils';
+import { getScoreBand, normalizeScore } from '@/lib/utils/scoreUtils';
 import { cn } from '@/lib/utils';
 
 interface OpportunityCardProps {
@@ -77,7 +77,7 @@ function ScoreBar({ score }: { score: number }) {
 }
 
 export function OpportunityCard({ opportunity, score, rank }: OpportunityCardProps) {
-  const compositeScore = score?.composite_score ?? 0;
+  const compositeScore = normalizeScore(score?.composite_score ?? 0);
   const scoreBand = getScoreBand(compositeScore);
   const rankStyle = RANK_STYLES[rank];
   const readinessTag = opportunity.agent_readiness_tag;
@@ -141,7 +141,7 @@ export function OpportunityCard({ opportunity, score, rank }: OpportunityCardPro
         {score && (
           <div className="grid grid-cols-5 gap-1 mb-3">
             {SCORE_DIMENSIONS.map(({ key, icon: Icon, label }) => {
-              const dimScore = score[key] ?? 0;
+              const dimScore = normalizeScore(score[key] ?? 0);
               const band = getScoreBand(dimScore);
               const textColor =
                 band === 'high'

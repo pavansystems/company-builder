@@ -1,5 +1,5 @@
 import { cn } from '@/lib/utils';
-import { getScoreColor, getScoreBand } from '@/lib/utils/scoreUtils';
+import { getScoreColor, getScoreBand, normalizeScore } from '@/lib/utils/scoreUtils';
 import { SCORE_BANDS } from '@/lib/constants/scoring';
 
 interface ScoreCardProps {
@@ -15,7 +15,8 @@ const sizeConfig = {
   lg: { diameter: 112, stroke: 8, fontSize: 'text-3xl', labelSize: 'text-sm' },
 };
 
-export function ScoreCard({ score, label, size = 'md', showBand = false }: ScoreCardProps) {
+export function ScoreCard({ score: rawScore, label, size = 'md', showBand = false }: ScoreCardProps) {
+  const score = normalizeScore(rawScore);
   const config = sizeConfig[size];
   const band = getScoreBand(score);
   const bandConfig = SCORE_BANDS[band];
